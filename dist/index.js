@@ -25,7 +25,8 @@ function preload() {
     this.load.image('background', 'assets/background.jpg');
     this.load.image('base_tiles','assets/Mario1/Tilesets/OverWorld.png');
     this.load.tilemapTiledJSON('map', 'assets/platform.json');
-    this.load.spritesheet('cat', 'assets/cat.png', {frameWidth: 50, frameHeight: 50});
+    this.load.spritesheet('cat1', 'assets/cat1.png', {frameWidth: 50, frameHeight: 50});
+    this.load.spritesheet('cat2', 'assets/cat2.png', {frameWidth: 50, frameHeight: 50});
 }
 
 var map;
