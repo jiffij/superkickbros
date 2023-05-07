@@ -1,11 +1,11 @@
 var config = {
     type: Phaser.CANVAS,
-    width: 1000,
-    height: 600,
+    width: 800,
+    height: 480,
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 800 },
+            gravity: { y: 200 },
             debug: false
         }
     },
@@ -38,17 +38,30 @@ function create() {
     map = this.make.tilemap({key: 'map', tileHeight: 16, tileWidth: 16});
     const tileset = map.addTilesetImage('3', 'base_tiles');
     groundLayer = map.createLayer('Tile Layer 1', tileset, 0, 0);
-    // this.add.image(300, 400, 'background');
-
-    // platforms = this.physics.add.staticGroup();
-    // platforms.create(400, 568, 'ground').setScale(2).refreshBody();
-    // platforms.create(600, 400, 'ground');
-    // platforms.create(50, 250, 'ground');
-    // platforms.create(750, 220, 'ground');
+    groundLayer.setCollisionByExclusion([-1]);
+    // console.log(groundLayer.width, groundLayer.height);
+    this.physics.world.bounds.width = groundLayer.width;
+    this.physics.world.bounds.height = groundLayer.height;
+    player = this.physics.add.sprite(16, 400, 'cat1');
+    player.setBounce(0.2);
+    player.setCollideWorldBounds(true);
+    this.physics.add.collider(groundLayer, player);
+    player.setScale(1,1);
+    cursors = this.input.keyboard.addKeys(
+        'W,A,S,D'
+    );
 }
 
 function update(){
+    if(cursors.W.isDown && player.body.onFloor()){
+        player.body.setVelocityY(-500);
+    }else if(cursors.S.isDown){
 
+    }else if(cursors.A.isDown){
+        player.body.setVelocityX(-200);
+    }else if(cursors.D.isDown){
+        player.body.setVelocityX(200);
+    }
 }
 
 var game = new Phaser.Game(config);
