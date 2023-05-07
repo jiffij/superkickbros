@@ -29,16 +29,20 @@ function preload() {
     this.load.tilemapTiledJSON('map', 'assets/platform.json');
     this.load.spritesheet('cat1', 'assets/cat1.png', {frameWidth: 64, frameHeight: 64});
     this.load.spritesheet('cat2', 'assets/cat2.png', {frameWidth: 64, frameHeight: 64});
+    this.load.image('ball', 'assets/ball.png');
 }
 
 var map;
 var player;
 var cursors;
 var groundLayer, coinLayer;
-var text;
-var body;
+var ball;
 var prestate = status.stand;
 var state = status.stand;
+let forceMagnitude = 100;
+let angle = 45; // in degrees
+let radians = Phaser.Math.DegToRad(angle);
+var dir = 'right';
 function create() {
     map = this.make.tilemap({key: 'map', tileHeight: 16, tileWidth: 16});
     const tileset = map.addTilesetImage('3', 'base_tiles');
@@ -46,13 +50,22 @@ function create() {
     groundLayer.setCollisionByExclusion([-1]);
     this.physics.world.bounds.width = groundLayer.width;
     this.physics.world.bounds.height = groundLayer.height;
-    player = this.physics.add.sprite(16, 16, 'cat1');
 
+    //add player
+    player = this.physics.add.sprite(16, 16, 'cat1');
     player.body.setSize(16,16);
     player.body.setOffset(26,40);
     player.setBounce(0.2, 0.2);
     player.setCollideWorldBounds(true);
     this.physics.add.collider(groundLayer, player);
+
+    //add ball
+    ball = this.physics.add.image(400, 16, 'ball');
+    ball.setScale(0.01);
+    ball.setBounce(0.5);
+    ball.setCollideWorldBounds(true);
+    this.physics.add.collider(groundLayer, ball);
+    this.physics.add.collider(player, ball);
 
     this.anims.create(
         {
@@ -73,7 +86,7 @@ function create() {
     player.play('stand');
 
     cursors = this.input.keyboard.addKeys(
-        'W,A,S,D'
+        'W,A,S,D,SPACE'
     );
 }
 
@@ -102,10 +115,12 @@ function update(){
     }
 
     if(cursors.A.isDown){
+        dir = 'left';
         player.setScale(-1,1);
         player.body.setVelocityX(-200);
         state = status.walk;
     }else if(cursors.D.isDown){
+        dir = 'right';
         player.setScale(1,1);
         player.body.setVelocityX(200);
         state = status.walk;
@@ -113,6 +128,21 @@ function update(){
         player.body.setVelocityX(0);
         state = status.stand;
     }
+
+    cursors.SPACE.once('down', function() {
+        let distance = Phaser.Math.Distance.Between(player.body.x, player.body.y, ball.body.x, ball.body.y);
+        let velocityx;
+        if(distance < 30){
+            velocityx = (player.body.x > ball.body.x)? -200: 200;
+            if((velocityx > 0 && dir === 'right') || (velocityx < 0 && dir === 'left')){
+                ball.body.setVelocity(velocityx,700);
+            }
+
+        }
+
+        // ball.applyForce(new Phaser.Math.Vector2(forceMagnitude * Math.cos(radians), forceMagnitude * Math.sin(radians)))
+    });
+
     updateAnimState();
 }
 
