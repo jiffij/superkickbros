@@ -11,14 +11,42 @@ const io = new Server(server);
 
 app.use(express.static(DIST_DIR));
 
-app.get('*', (req, res) => {
+app.get('/', (req, res) => {
     res.sendFile(HTML_FILE);
 })
 
-app.listen(port, function (){
+server.listen(port, function (){
     console.log("server started");
 });
 
+
+var players = {};
+var num = 0;
 io.on("connection", (socket)=>{
    console.log("a user connected");
+   var id = socket.id;
+   console.log(socket.id);
+   if(num >= 2){socket.disconnect(true); return;}
+
+   socket.on('join', ()=>{
+       socket.emit('num', num++);
+   })
+
+   socket.on('update',(states)=>{
+       players[id] = states;
+       // console.log(states);
+   });
+
+   socket.on('disconnect', ()=>{
+       delete players[id];
+       num--;
+   })
+
 });
+
+intervalId = setInterval(() => {
+    if(num === 2){
+        // console.log('update');
+        io.emit('update', players);
+    }
+}, 20);

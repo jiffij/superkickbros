@@ -1,4 +1,7 @@
 import {cat, status} from './Sprite.js';
+// import {io} from "socket.io-client";
+import { io } from "https://cdn.socket.io/4.3.2/socket.io.esm.min.js";
+// import { io } from '';
 
 var config = {
     type: Phaser.CANVAS,
@@ -37,12 +40,27 @@ var player;
 var cursors;
 var groundLayer, coinLayer;
 var ball;
-var prestate = status.stand;
-var state = status.stand;
-let forceMagnitude = 100;
+var enemy;
+let kickMagnitude = 700;
 let angle = 45; // in degrees
 let radians = Phaser.Math.DegToRad(angle);
-var dir = 'right';
+
+var states = {
+    dir: 'right',
+    state: status.stand,
+    prestate: status.stand,
+    position: new Phaser.Math.Vector2(16, 16),
+    color: 'cat1',
+};
+
+var enemyStates = {
+    dir: 'right',
+    state: status.stand,
+    prestate: status.stand,
+    position: new Phaser.Math.Vector2(16, 16),
+    color: 'cat1',
+}
+
 function create() {
     map = this.make.tilemap({key: 'map', tileHeight: 16, tileWidth: 16});
     const tileset = map.addTilesetImage('3', 'base_tiles');
@@ -52,25 +70,19 @@ function create() {
     this.physics.world.bounds.height = groundLayer.height;
 
     //add player
-    player = this.physics.add.sprite(16, 16, 'cat1');
-    player.body.setSize(16,16);
+    player = this.physics.add.sprite(states.position.x, states.position.y, states.color);
+    player.body.setSize(8,16);
     player.body.setOffset(26,40);
     player.setBounce(0.2, 0.2);
     player.setCollideWorldBounds(true);
     this.physics.add.collider(groundLayer, player);
+    if(states.dir === 'left') player.setScale(-1,1);
 
-    //add ball
-    ball = this.physics.add.image(400, 16, 'ball');
-    ball.setScale(0.01);
-    ball.setBounce(0.5);
-    ball.setCollideWorldBounds(true);
-    this.physics.add.collider(groundLayer, ball);
-    this.physics.add.collider(player, ball);
 
     this.anims.create(
         {
             key: 'stand',
-            frames: this.anims.generateFrameNumbers('cat1', { start: cat.stand.start, end: cat.stand.end}),
+            frames: this.anims.generateFrameNumbers(states.color, { start: cat.stand.start, end: cat.stand.end}),
             frameRate: 8,
             repeat: -1
         });
@@ -78,7 +90,7 @@ function create() {
     this.anims.create(
         {
             key: 'walk',
-            frames: this.anims.generateFrameNumbers('cat1', { start: cat.walk.start, end: cat.walk.end}),
+            frames: this.anims.generateFrameNumbers(states.color, { start: cat.walk.start, end: cat.walk.end}),
             frameRate: 8,
             repeat: -1
         });
@@ -88,11 +100,52 @@ function create() {
     cursors = this.input.keyboard.addKeys(
         'W,A,S,D,SPACE'
     );
+
+    enemy = this.physics.add.sprite(enemyStates.position.x, enemyStates.position.y, enemyStates.color);
+    enemy.body.setSize(8,16);
+    enemy.body.setOffset(26,40);
+    enemy.setBounce(0.2, 0.2);
+    enemy.setCollideWorldBounds(true);
+    enemy.body.allowGravity = false;
+    this.physics.add.collider(groundLayer, enemy);
+    if(enemyStates.dir === 'left') enemy.setScale(-1,1);
+
+    //add ball
+    ball = this.physics.add.image(400, 16, 'ball');
+    ball.setScale(0.01);
+    ball.setBounce(0.5);
+    ball.setCollideWorldBounds(true);
+    this.physics.add.collider(groundLayer, ball);
+    this.physics.add.collider(player, ball);
+    this.physics.add.collider(enemy, ball);
+
+    this.anims.create(
+        {
+            key: 'enemyStand',
+            frames: this.anims.generateFrameNumbers(enemyStates.color, { start: cat.stand.start, end: cat.stand.end}),
+            frameRate: 8,
+            repeat: -1
+        });
+
+    this.anims.create(
+        {
+            key: 'enemyWalk',
+            frames: this.anims.generateFrameNumbers(enemyStates.color, { start: cat.walk.start, end: cat.walk.end}),
+            frameRate: 8,
+            repeat: -1
+        });
+
+    enemy.play('enemyStand');
+
+    setInterval(()=>{
+        socket.emit('update', states);
+    }, 20)
+
 }
 
 function updateAnimState(){
-    if(prestate === state) return;
-    switch (state) {
+    if(states.prestate === states.state) return;
+    switch (states.state) {
         case status.stand:
             player.play('stand');
             break;
@@ -104,7 +157,12 @@ function updateAnimState(){
         case status.slide:
             break;
     }
-    prestate = state;
+    states.prestate = states.state;
+}
+
+function updateEnemyState(phaser){
+    enemy.setPosition(enemyStates.position.x, enemyStates.position.y);
+    enemy.body.updateBounds();
 }
 
 function update(){
@@ -115,18 +173,18 @@ function update(){
     }
 
     if(cursors.A.isDown){
-        dir = 'left';
+        states.dir = 'left';
         player.setScale(-1,1);
         player.body.setVelocityX(-200);
-        state = status.walk;
+        states.state = status.walk;
     }else if(cursors.D.isDown){
-        dir = 'right';
+        states.dir = 'right';
         player.setScale(1,1);
         player.body.setVelocityX(200);
-        state = status.walk;
+        states.state = status.walk;
     }else{
         player.body.setVelocityX(0);
-        state = status.stand;
+        states.state = status.stand;
     }
 
     cursors.SPACE.once('down', function() {
@@ -134,16 +192,45 @@ function update(){
         let velocityx;
         if(distance < 30){
             velocityx = (player.body.x > ball.body.x)? -200: 200;
-            if((velocityx > 0 && dir === 'right') || (velocityx < 0 && dir === 'left')){
+            if((velocityx > 0 && states.dir === 'right') || (velocityx < 0 && states.dir === 'left')){
                 ball.body.setVelocity(velocityx,700);
             }
 
         }
 
-        // ball.applyForce(new Phaser.Math.Vector2(forceMagnitude * Math.cos(radians), forceMagnitude * Math.sin(radians)))
+
     });
 
+    states.position = player.body.position;
+    // console.log(states.position);
     updateAnimState();
+
+    updateEnemyState(this);
 }
 
-var game = new Phaser.Game(config);
+const socket = io();
+
+socket.emit('join');
+
+socket.on('num', (num)=>{
+    if(num === 1){
+        states.dir = 'left';
+        states.position = new Phaser.Math.Vector2(784, 16);
+        states.color = 'cat2';
+    }else{
+        enemyStates.dir = 'left';
+        enemyStates.position = new Phaser.Math.Vector2(784, 16);
+        enemyStates.color = 'cat2';
+    }
+    var game = new Phaser.Game(config);
+});
+
+socket.on('update', (serverStates)=>{
+    for(let id in serverStates){
+        if(id !== socket.id){
+            enemyStates = serverStates[id];
+            // console.log(enemyStates.position);
+        }
+    }
+});
+
