@@ -1,3 +1,5 @@
+import {cat, status} from './Sprite.js';
+
 var config = {
     type: Phaser.CANVAS,
     width: 800,
@@ -5,7 +7,7 @@ var config = {
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 200 },
+            gravity: { y: 800 },
             debug: false
         }
     },
@@ -35,6 +37,8 @@ var cursors;
 var groundLayer, coinLayer;
 var text;
 var body;
+var prestate = status.stand;
+var state = status.stand;
 function create() {
     map = this.make.tilemap({key: 'map', tileHeight: 16, tileWidth: 16});
     const tileset = map.addTilesetImage('3', 'base_tiles');
@@ -50,9 +54,44 @@ function create() {
     player.setCollideWorldBounds(true);
     this.physics.add.collider(groundLayer, player);
 
+    this.anims.create(
+        {
+            key: 'stand',
+            frames: this.anims.generateFrameNumbers('cat1', { start: cat.stand.start, end: cat.stand.end}),
+            frameRate: 8,
+            repeat: -1
+        });
+
+    this.anims.create(
+        {
+            key: 'walk',
+            frames: this.anims.generateFrameNumbers('cat1', { start: cat.walk.start, end: cat.walk.end}),
+            frameRate: 8,
+            repeat: -1
+        });
+
+    player.play('stand');
+
     cursors = this.input.keyboard.addKeys(
         'W,A,S,D'
     );
+}
+
+function updateAnimState(){
+    if(prestate === state) return;
+    switch (state) {
+        case status.stand:
+            player.play('stand');
+            break;
+        case status.walk:
+            player.play('walk');
+            break;
+        case status.jump:
+            break;
+        case status.slide:
+            break;
+    }
+    prestate = state;
 }
 
 function update(){
@@ -60,13 +99,21 @@ function update(){
         player.body.setVelocityY(-500);
     }else if(cursors.S.isDown){
 
-    }else if(cursors.A.isDown){
+    }
+
+    if(cursors.A.isDown){
         player.setScale(-1,1);
         player.body.setVelocityX(-200);
+        state = status.walk;
     }else if(cursors.D.isDown){
         player.setScale(1,1);
         player.body.setVelocityX(200);
+        state = status.walk;
+    }else{
+        player.body.setVelocityX(0);
+        state = status.stand;
     }
+    updateAnimState();
 }
 
 var game = new Phaser.Game(config);
