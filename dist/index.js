@@ -1,4 +1,4 @@
-import {cat, status} from './Sprite.js';
+import {cat, status, keyState} from './Sprite.js';
 // import {io} from "socket.io-client";
 import { io } from "https://cdn.socket.io/4.3.2/socket.io.esm.min.js";
 // import { io } from '';
@@ -44,7 +44,7 @@ var enemy;
 let kickMagnitude = 700;
 let angle = 45; // in degrees
 let radians = Phaser.Math.DegToRad(angle);
-
+var ballPos = new Phaser.Math.Vector2(400, 16);
 var states = {
     dir: 'right',
     state: status.stand,
@@ -59,6 +59,18 @@ var enemyStates = {
     prestate: status.stand,
     position: new Phaser.Math.Vector2(16, 16),
     color: 'cat1',
+}
+
+var keyPressed = {
+    dir: keyState.direction.none,
+    verticleState: keyState.verticleState.none,
+    kick: keyState.kick.none,
+}
+
+var enemyKeyPressed = {
+    dir: keyState.direction.none,
+    verticleState: keyState.verticleState.none,
+    kick: keyState.kick.none,
 }
 
 function create() {
@@ -77,6 +89,7 @@ function create() {
     player.setCollideWorldBounds(true);
     this.physics.add.collider(groundLayer, player);
     if(states.dir === 'left') player.setScale(-1,1);
+    if(states.color === 'cat2') player.body.allowGravity = false;
 
 
     this.anims.create(
@@ -106,9 +119,9 @@ function create() {
     enemy.body.setOffset(26,40);
     enemy.setBounce(0.2, 0.2);
     enemy.setCollideWorldBounds(true);
-    enemy.body.allowGravity = false;
     this.physics.add.collider(groundLayer, enemy);
     if(enemyStates.dir === 'left') enemy.setScale(-1,1);
+    if(states.color === 'cat2') enemy.body.allowGravity = false;
 
     //add ball
     ball = this.physics.add.image(400, 16, 'ball');
@@ -118,6 +131,7 @@ function create() {
     this.physics.add.collider(groundLayer, ball);
     this.physics.add.collider(player, ball);
     this.physics.add.collider(enemy, ball);
+    if(states.color === 'cat2') ball.body.allowGravity = false;
 
     this.anims.create(
         {
@@ -137,10 +151,25 @@ function create() {
 
     enemy.play('enemyStand');
 
-    setInterval(()=>{
-        socket.emit('update', states);
-    }, 20)
-
+    if(states.color === 'cat1'){
+        setInterval(()=>{
+            socket.emit('update', {cat1: states, cat2: enemyStates, ball: ballPos});//states
+        }, 10);
+        socket.on('kick',()=>{
+            let distance = Phaser.Math.Distance.Between(enemy.body.x, enemy.body.y, ball.body.x, ball.body.y);
+            let velocityx;
+            if(distance < 30){
+                velocityx = (enemy.body.x > ball.body.x)? -200: 200;
+                if((velocityx > 0 && enemyStates.dir === 'right') || (velocityx < 0 && enemyStates.dir === 'left')){
+                    ball.body.setVelocity(velocityx,700);
+                }
+            }
+        });
+    }else{
+        setInterval(()=>{
+            socket.emit('updateKey', keyPressed);//states
+        }, 10)
+    }
 }
 
 function updateAnimState(){
@@ -165,47 +194,129 @@ function updateEnemyState(phaser){
     enemy.body.updateBounds();
 }
 
-function update(){
-    if(cursors.W.isDown && player.body.onFloor()){
-        player.body.setVelocityY(-500);
-    }else if(cursors.S.isDown){
+function updateAll(){
+    player.setPosition(states.position.x, states.position.y);
+    enemy.setPosition(enemyStates.position.x, enemyStates.position.y);
+    ball.setPosition(ballPos.x, ballPos.y);
+}
 
-    }
-
-    if(cursors.A.isDown){
-        states.dir = 'left';
-        player.setScale(-1,1);
-        player.body.setVelocityX(-200);
-        states.state = status.walk;
-    }else if(cursors.D.isDown){
-        states.dir = 'right';
-        player.setScale(1,1);
-        player.body.setVelocityX(200);
-        states.state = status.walk;
-    }else{
-        player.body.setVelocityX(0);
-        states.state = status.stand;
-    }
-
-    cursors.SPACE.once('down', function() {
-        let distance = Phaser.Math.Distance.Between(player.body.x, player.body.y, ball.body.x, ball.body.y);
-        let velocityx;
-        if(distance < 30){
-            velocityx = (player.body.x > ball.body.x)? -200: 200;
-            if((velocityx > 0 && states.dir === 'right') || (velocityx < 0 && states.dir === 'left')){
-                ball.body.setVelocity(velocityx,700);
+function enemyAction(){
+    if(enemyKeyPressed === null) return;
+    switch (enemyKeyPressed.verticleState) {
+        case keyState.verticleState.jump:
+            if(enemy.body.onFloor()){
+                enemy.body.setVelocityY(-500);
             }
+            break;
+        case keyState.verticleState.slide:
+            break;
+        case keyState.verticleState.none:
+            break;
+    }
 
+    switch (enemyKeyPressed.dir) {
+        case keyState.direction.left:
+            enemyStates.dir = 'left';
+            enemy.setScale(-1,1);
+            enemy.body.setVelocityX(-200);
+            enemyStates.state = status.walk;
+            break;
+        case keyState.direction.right:
+            enemyStates.dir = 'right';
+            enemy.setScale(1,1);
+            enemy.body.setVelocityX(200);
+            enemyStates.state = status.walk;
+            break;
+        case keyState.direction.none:
+            enemy.body.setVelocityX(0);
+            enemyStates.state = status.stand;
+            break;
+    }
+
+    // if(enemyKeyPressed.kick ===  keyState.kick.kick){
+    //     let distance = Phaser.Math.Distance.Between(enemy.body.x, enemy.body.y, ball.body.x, ball.body.y);
+    //     let velocityx;
+    //     if(distance < 30){
+    //         velocityx = (enemy.body.x > ball.body.x)? -200: 200;
+    //         if((velocityx > 0 && enemyStates.dir === 'right') || (velocityx < 0 && enemyStates.dir === 'left')){
+    //             ball.body.setVelocity(velocityx,700);
+    //         }
+    //     }
+    // }
+
+}
+
+function update(){
+    if(states.color === 'cat1') {
+        if (cursors.W.isDown && player.body.onFloor()) {
+            // keyPressed.verticleState = keyState.verticleState.jump;
+            player.body.setVelocityY(-500);
+        } else if (cursors.S.isDown) {
+            // keyPressed.verticleState = keyState.verticleState.slide;
+        } else {
+            // keyPressed.verticleState = keyState.verticleState.none;
         }
 
+        if (cursors.A.isDown) {
+            states.dir = 'left';
+            player.setScale(-1, 1);
+            player.body.setVelocityX(-200);
+            states.state = status.walk;
+            // keyPressed.dir = keyState.direction.left;
+        } else if (cursors.D.isDown) {
+            states.dir = 'right';
+            player.setScale(1, 1);
+            player.body.setVelocityX(200);
+            states.state = status.walk;
+            // keyPressed.dir = keyState.direction.right;
+        } else {
+            player.body.setVelocityX(0);
+            states.state = status.stand;
+            // keyPressed.dir = keyState.direction.none;
+        }
 
-    });
+        // keyPressed.kick = keyState.kick.none;
+        cursors.SPACE.once('down', function () {
+            let distance = Phaser.Math.Distance.Between(player.body.x, player.body.y, ball.body.x, ball.body.y);
+            let velocityx;
+            // keyPressed.kick = keyState.kick.kick;
+            if (distance < 30) {
+                velocityx = (player.body.x > ball.body.x) ? -200 : 200;
+                if ((velocityx > 0 && states.dir === 'right') || (velocityx < 0 && states.dir === 'left')) {
+                    ball.body.setVelocity(velocityx, 700);
+                }
+            }
+        });
 
-    states.position = player.body.position;
-    // console.log(states.position);
-    updateAnimState();
+        states.position = player.body.position;
+        enemyStates.position = enemy.body.position;
+        ballPos = ball.body.position;
+        updateAnimState();
+        enemyAction();
+    }else{//player 2
+        if (cursors.W.isDown) {
+            keyPressed.verticleState = keyState.verticleState.jump;
+        } else if (cursors.S.isDown) {
+            keyPressed.verticleState = keyState.verticleState.slide;
+        } else {
+            keyPressed.verticleState = keyState.verticleState.none;
+        }
 
-    updateEnemyState(this);
+        if (cursors.A.isDown) {
+            keyPressed.dir = keyState.direction.left;
+        } else if (cursors.D.isDown) {
+            keyPressed.dir = keyState.direction.right;
+        } else {
+            keyPressed.dir = keyState.direction.none;
+        }
+
+        keyPressed.kick = keyState.kick.none;
+        cursors.SPACE.once('down', function () {
+            socket.emit('cat2kick');
+            keyPressed.kick = keyState.kick.kick;
+        });
+        updateAll();
+    }
 }
 
 const socket = io();
@@ -222,15 +333,19 @@ socket.on('num', (num)=>{
         enemyStates.position = new Phaser.Math.Vector2(784, 16);
         enemyStates.color = 'cat2';
     }
+    if(states.color === 'cat1') {
+        socket.on('updateKey', (keypress) => {
+            enemyKeyPressed = keypress;
+        });
+    }else{
+        socket.on('update', (serverStates) => {
+            states = serverStates['cat2'];
+            enemyStates = serverStates['cat1'];
+            ballPos = serverStates['ball'];
+        });
+    }
     var game = new Phaser.Game(config);
 });
 
-socket.on('update', (serverStates)=>{
-    for(let id in serverStates){
-        if(id !== socket.id){
-            enemyStates = serverStates[id];
-            // console.log(enemyStates.position);
-        }
-    }
-});
+
 

@@ -20,8 +20,9 @@ server.listen(port, function (){
 });
 
 
-var players = {};
+var players;
 var num = 0;
+var cat2Key;
 io.on("connection", (socket)=>{
    console.log("a user connected");
    var id = socket.id;
@@ -33,13 +34,24 @@ io.on("connection", (socket)=>{
    })
 
    socket.on('update',(states)=>{
-       players[id] = states;
+       players = states;
        // console.log(states);
    });
 
+   socket.on('updateKey', (keypressed)=>{
+       cat2Key = keypressed;
+   })
+
+    socket.on('cat2kick', ()=>{
+        io.emit('kick');
+    })
+
    socket.on('disconnect', ()=>{
-       delete players[id];
-       num--;
+       if(num === 1){
+           players = null;
+           num--;
+       }
+
    })
 
 });
@@ -49,4 +61,11 @@ intervalId = setInterval(() => {
         // console.log('update');
         io.emit('update', players);
     }
-}, 20);
+}, 10);
+
+setInterval(() => {
+    if(num === 2){
+        // console.log('update');
+        io.emit('updateKey', cat2Key);
+    }
+}, 10);
