@@ -7,50 +7,11 @@
     <script src="./phaser.js"></script>
     <script type="module" src="./index.js"></script>
 <!--    <script type="module" src="./Sprite.js"></script>-->
-    <style>
-        #game-start, #game-over {
-            background: rgba(1, 1, 1, 0.8);
-        }
-        #counter text {
-            font-size: 130%;
-            fill: white;
-            stroke: black;
-            stroke-width: 1px;
-        }
-        #game-start text {
-            font-size: 150%;
-            fill: white;
-            text-anchor: middle;
-        }
-        #game-start #game-title {
-            font-size: 400%;
-            fill: url(#title-fill);
-            stroke: black;
-        }
-        #game-over text {
-            font-size: 120%;
-            fill: url(#game-over-fill);
-            text-anchor: middle;
-        }
-    </style>
+
 </head>
 <body>
-   <!-- <H1>Hello world</H1> -->
+   <H1>Hello world</H1>
 <!--    <script src="bundle.js"></script>-->
-    <svg xmlns="http://www.w3.org/2000/svg" id="game-over" style="display: none">
-        <defs>
-            <linearGradient id="game-over-fill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stop-color="red" />
-                <stop offset="0.5" stop-color="yellow" />
-                <stop offset="1" stop-color="red" />
-            </linearGradient>
-        </defs>
-        <text x="50%" y="50%">
-            Time's up! The result of the socres are
-            <tspan id="final-gems">0</tspan>
-            gem(s).
-        </text>
-    </svg>
 
 </body>
 </html>
