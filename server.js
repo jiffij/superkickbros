@@ -38,6 +38,15 @@ io.on("connection", (socket)=>{
        // console.log(states);
    });
 
+   socket.on('hadouken', (data)=>{
+       data.who = data.who === 'cat1'? 'cat2': 'cat1';
+       io.emit('hadouken', data);
+   })
+
+    socket.on('hadoukenKey', ()=>{
+        io.emit('hadoukenKey');
+    });
+
    socket.on('updateKey', (keypressed)=>{
        cat2Key = keypressed;
    })

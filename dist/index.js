@@ -1,4 +1,4 @@
-import {cat, status, keyState, mushroomSprite} from './Sprite.js';
+import {cat, status, keyState, mushroomSprite, hadoukenConfig} from './Sprite.js';
 // import {io} from "socket.io-client";
 import { io } from "https://cdn.socket.io/4.3.2/socket.io.esm.min.js";
 // import { io } from '';
@@ -36,14 +36,18 @@ function preload() {
     this.load.image('gate1', 'assets/gate1.png');
     this.load.image('gate2', 'assets/gate2.png');
     this.load.spritesheet('mushroom', 'assets/Mario1/Characters/Enemies.png', {frameWidth: mushroomSprite.size, frameHeight: mushroomSprite.size});
+    this.load.spritesheet('hadouken', 'assets/hadouken.png', {frameWidth: hadoukenConfig.width, frameHeight: hadoukenConfig.height});
 }
 
+
+var game;
 var map;
 var player;
 var cursors;
 var groundLayer, coinLayer;
 var ball;
 var enemy;
+// var hadouken;
 let kickMagnitude = 700;
 let angle = 45; // in degrees
 var net1;
@@ -53,11 +57,17 @@ var cat2Score = 0;
 var text1;
 var text2;
 var mushroom;
-var mushroomVelocity = 200;
+var mushroomPos = new Phaser.Math.Vector2(mushroomSprite.initx, mushroomSprite.inity);
+var mushroomPrePos = new Phaser.Math.Vector2(mushroomSprite.initx, mushroomSprite.inity);
+var mushroomVelocity = 100;
+var mushroomChangeDir = false;
 var cat1velocity = 200;
 var cat2velocity = 200;
 let radians = Phaser.Math.DegToRad(angle);
 var ballPos = new Phaser.Math.Vector2(400, 16);
+var hadouken1;
+var hadouken2;
+
 var states = {
     dir: 'right',
     state: status.stand,
@@ -123,7 +133,7 @@ function create() {
     player.play('stand');
 
     cursors = this.input.keyboard.addKeys(
-        'W,A,S,D,SPACE'
+        'W,A,S,D,SPACE,E'
     );
 
     //blue cat
@@ -184,7 +194,9 @@ function create() {
     this.physics.add.collider(mushroom, ball);
     this.physics.add.collider(mushroom, player);
     this.physics.add.collider(mushroom, enemy);
-    mushroom.body.setVelocityX(mushroomVelocity);
+    if(states.color === 'cat1') mushroom.body.setVelocityX(mushroomVelocity);
+    if(states.color === 'cat2') mushroom.body.allowGravity = false;
+    // mushroom.body.setVelocityX(mushroomVelocity);
 
     this.physics.add.overlap(player, mushroom, () => {
         // Detect the direction of the collision
@@ -287,10 +299,36 @@ function create() {
 
     enemy.play('enemyStand');
 
+    //hadouken
+    hadouken1 = this.physics.add.sprite(0,0, 'hadouken');
+    hadouken2 = this.physics.add.sprite(0,0, 'hadouken');
+    hadouken1.body.allowGravity = false;
+    hadouken2.body.allowGravity = false;
+    hadouken1.visible = false;
+    hadouken2.visible = false;
+    this.anims.create(
+        {
+            key: 'HADOUKEN1',
+            frames: this.anims.generateFrameNumbers('hadouken', {start: hadoukenConfig.start, end: hadoukenConfig.end}),
+            frameRate: hadoukenConfig.end+1,
+            repeat: 1,
+        }
+    );
+    this.anims.create(
+        {
+            key: 'HADOUKEN2',
+            frames: this.anims.generateFrameNumbers('hadouken', {start: hadoukenConfig.start, end: hadoukenConfig.end}),
+            frameRate: hadoukenConfig.end+1,
+            repeat: 1,
+        }
+    );
+
+    // var hadouken = this.physics.add.sprite(player.body.position.x + 100, player.body.position.y, 'hadouken');
+
     //events
     if(states.color === 'cat1'){
         setInterval(()=>{
-            socket.emit('update', {cat1: states, cat2: enemyStates, ball: ballPos});//states
+            socket.emit('update', {cat1: states, cat2: enemyStates, ball: ballPos, mushroom: mushroomPos});//states
         }, 10);
         socket.on('kick',()=>{
             let distance = Phaser.Math.Distance.Between(enemy.body.x, enemy.body.y, ball.body.x, ball.body.y);
@@ -302,10 +340,24 @@ function create() {
                 }
             }
         });
+        socket.on('hadoukenKey', ()=>{
+           hadouken('cat2', enemy.body.position);
+        });
     }else{
         setInterval(()=>{
             socket.emit('updateKey', keyPressed);//states
-        }, 10)
+        }, 10);
+        socket.on('hadouken', (data)=>{
+            hadouken(data.who, data.position);
+        });
+        socket.on('score', (score)=>{
+            this.scene.restart();
+            setTimeout(()=>{
+                text1.setText(`Score: `+score['cat1']);
+                text2.setText(`Score: `+score['cat2']);
+            }, 1000);
+
+        })
     }
 }
 
@@ -324,6 +376,18 @@ function updateAnimState(){
             break;
     }
     states.prestate = states.state;
+}
+
+function updateMushroom(){
+
+    if(mushroomPos.x < 260 || mushroomPos.x > 530) {
+        mushroomChangeDir = true;
+    }
+    if(mushroomChangeDir){
+        mushroomVelocity = -mushroomVelocity;
+        mushroomChangeDir = false;
+    }
+    mushroom.body.setVelocityX(mushroomVelocity);
 }
 
 function updateEnemyAnimState(){
@@ -352,6 +416,7 @@ function updateAll(){
     player.setPosition(states.position.x, states.position.y);
     enemy.setPosition(enemyStates.position.x, enemyStates.position.y);
     ball.setPosition(ballPos.x, ballPos.y);
+    mushroom.setPosition(mushroomPos.x, mushroomPos.y);
     states.dir === 'left'? player.setScale(-1,1): player.setScale(1,1);
     enemyStates.dir === 'left'? enemy.setScale(-1,1): enemy.setScale(1,1);
     updateAnimState();
@@ -404,6 +469,32 @@ function enemyAction(){
 
 }
 
+function hadouken(who, position){
+    if(who === 'cat1') {
+        if(states.color === 'cat1') socket.emit('hadouken', {who: 'cat1', position: position});
+        hadouken1.setPosition(position.x, position.y);
+        hadouken1.play('HADOUKEN1');
+        hadouken1.visible = true;
+        states.dir === 'left' ? hadouken1.setScale(-1, 1) : hadouken1.setScale(1, 1);
+        hadouken1.body.setVelocityX(states.dir === 'left' ? -100 : 100);
+        setTimeout(() => {
+            hadouken1.body.setVelocityX(0);
+            hadouken1.visible = false;
+        }, 1500);
+    }else{
+        if(states.color === 'cat1') socket.emit('hadouken', {who: 'cat2', position: position});
+        hadouken2.setPosition(position.x, position.y);
+        hadouken2.play('HADOUKEN2');
+        hadouken2.visible = true;
+        enemyStates.dir === 'left' ? hadouken2.setScale(-1, 1) : hadouken2.setScale(1, 1);
+        hadouken2.body.setVelocityX(enemyStates.dir === 'left' ? -100 : 100);
+        setTimeout(() => {
+            hadouken2.body.setVelocityX(0);
+            hadouken2.visible = false;
+        }, 1500);
+    }
+}
+
 function update(){
     if(states.color === 'cat1') {
         if (cursors.W.isDown && player.body.onFloor()) {
@@ -446,12 +537,23 @@ function update(){
             }
         });
 
+        //hadouken
+        cursors.E.once('down', function () {
+                if(!hadouken1.visible){
+                    hadouken('cat1', player.body.position);
+                }
+            }
+        );
+
+        //update position
         states.position = player.body.position;
         enemyStates.position = enemy.body.position;
         ballPos = ball.body.position;
+        mushroomPos = mushroom.body.position;
         updateAnimState();
         updateEnemyAnimState();
         enemyAction();
+        updateMushroom();
     }else{//player 2
         if (cursors.W.isDown) {
             keyPressed.verticleState = keyState.verticleState.jump;
@@ -474,6 +576,14 @@ function update(){
             socket.emit('cat2kick');
             keyPressed.kick = keyState.kick.kick;
         });
+
+        //hadouken
+        cursors.E.once('down', function () {
+            if(!hadouken1.visible){
+                socket.emit('hadoukenKey');
+            }
+        });
+
         updateAll();
     }
 }
@@ -501,13 +611,11 @@ socket.on('num', (num)=>{
             states = serverStates['cat2'];
             enemyStates = serverStates['cat1'];
             ballPos = serverStates['ball'];
+            mushroomPos = serverStates['mushroom'];
         });
-        socket.on('score', (score)=>{
-            text1.setText(`Score: `+score['cat1']);
-            text2.setText(`Score: `+score['cat2']);
-        })
+
     }
-    var game = new Phaser.Game(config);
+    game = new Phaser.Game(config);
 });
 
 

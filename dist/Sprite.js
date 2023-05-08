@@ -42,3 +42,10 @@ export const mushroomSprite = {
     initx: 400,
     inity: 300,
 }
+
+export const hadoukenConfig = {
+    start: 0,
+    end: 3,
+    height: 32,
+    width: 39,
+}
