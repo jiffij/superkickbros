@@ -67,6 +67,7 @@ let radians = Phaser.Math.DegToRad(angle);
 var ballPos = new Phaser.Math.Vector2(400, 16);
 var hadouken1;
 var hadouken2;
+let sequenceIndex = 0;
 
 var states = {
     dir: 'right',
@@ -130,10 +131,19 @@ function create() {
             repeat: -1
         });
 
+    this.anims.create(
+        {
+            key: 'fall',
+            frames: this.anims.generateFrameNumbers(states.color, { start: cat.fall.start, end: cat.fall.end-2}),
+            frameRate: 9,
+            repeat: 0,
+        }
+    )
+
     player.play('stand');
 
     cursors = this.input.keyboard.addKeys(
-        'W,A,S,D,SPACE,E'
+        'W,A,S,D,SPACE,E,J,K,L'
     );
 
     //blue cat
@@ -296,22 +306,32 @@ function create() {
             frameRate: 8,
             repeat: -1
         });
+    this.anims.create(
+        {
+            key: 'enemyFall',
+            frames: this.anims.generateFrameNumbers(enemyStates.color, { start: cat.fall.start, end: cat.fall.end-2}),
+            frameRate: 9,
+            repeat: 0,
+        }
+    )
 
     enemy.play('enemyStand');
 
     //hadouken
-    hadouken1 = this.physics.add.sprite(0,0, 'hadouken');
-    hadouken2 = this.physics.add.sprite(0,0, 'hadouken');
+    hadouken1 = this.physics.add.sprite(800,480, 'hadouken');
+    hadouken2 = this.physics.add.sprite(800,480, 'hadouken');
     hadouken1.body.allowGravity = false;
     hadouken2.body.allowGravity = false;
     hadouken1.visible = false;
     hadouken2.visible = false;
+
+
     this.anims.create(
         {
             key: 'HADOUKEN1',
             frames: this.anims.generateFrameNumbers('hadouken', {start: hadoukenConfig.start, end: hadoukenConfig.end}),
             frameRate: hadoukenConfig.end+1,
-            repeat: 1,
+            repeat: 0,
         }
     );
     this.anims.create(
@@ -319,11 +339,30 @@ function create() {
             key: 'HADOUKEN2',
             frames: this.anims.generateFrameNumbers('hadouken', {start: hadoukenConfig.start, end: hadoukenConfig.end}),
             frameRate: hadoukenConfig.end+1,
-            repeat: 1,
+            repeat: 0,
         }
     );
 
     // var hadouken = this.physics.add.sprite(player.body.position.x + 100, player.body.position.y, 'hadouken');
+
+    //secret code "JKL"
+    cursors.J.on('down', ()=>{
+        if(sequenceIndex === 0) sequenceIndex = 1;
+        else sequenceIndex = 0;
+    });
+
+    cursors.K.on('down', ()=>{
+        if(sequenceIndex === 1) sequenceIndex = 2;
+        else sequenceIndex = 0;
+    });
+    cursors.L.on('down', ()=>{
+        if(sequenceIndex === 2) {
+            if (!hadouken1.visible) {
+                states.color === 'cat1' ?
+                    hadouken('cat1', player.body.position) : socket.emit('hadoukenKey');
+            }
+        } else sequenceIndex = 0;
+    });
 
     //events
     if(states.color === 'cat1'){
@@ -343,6 +382,26 @@ function create() {
         socket.on('hadoukenKey', ()=>{
            hadouken('cat2', enemy.body.position);
         });
+        this.physics.add.overlap(hadouken1, enemy, ()=>{
+            if(enemyStates.state === status.fall) return;
+            enemyStates.state = status.fall;
+            enemy.body.immovable = true;
+            setTimeout(()=>{
+                enemyStates.state = status.stand;
+                enemy.body.immovable = false;
+            }, 2000);
+            socket.emit('fall', 'cat2');
+        });
+        this.physics.add.overlap(hadouken2, player, ()=>{
+            if(player.state === status.fall) return;
+            states.state = status.fall;
+            player.body.immovable = true;
+            setTimeout(()=>{
+                states.state = status.stand;
+                player.body.immovable = false;
+            }, 2000);
+            socket.emit('fall', 'cat1');
+        });
     }else{
         setInterval(()=>{
             socket.emit('updateKey', keyPressed);//states
@@ -356,8 +415,14 @@ function create() {
                 text1.setText(`Score: `+score['cat1']);
                 text2.setText(`Score: `+score['cat2']);
             }, 1000);
-
-        })
+        });
+        socket.on('fall', (who)=>{
+           var victimState = who === 'cat1'? enemyStates: states;
+           victimState.state = status.fall;
+           setTimeout(()=>{
+               victimState.state = status.stand;
+           }, 2000);
+        });
     }
 }
 
@@ -373,6 +438,9 @@ function updateAnimState(){
         case status.jump:
             break;
         case status.slide:
+            break;
+        case status.fall:
+            player.play('fall');
             break;
     }
     states.prestate = states.state;
@@ -403,13 +471,11 @@ function updateEnemyAnimState(){
             break;
         case status.slide:
             break;
+        case status.fall:
+            enemy.play('enemyFall');
+            break;
     }
     enemyStates.prestate = enemyStates.state;
-}
-
-function updateEnemyState(phaser){
-    enemy.setPosition(enemyStates.position.x, enemyStates.position.y);
-    enemy.body.updateBounds();
 }
 
 function updateAll(){
@@ -425,6 +491,7 @@ function updateAll(){
 
 function enemyAction(){
     if(enemyKeyPressed === null) return;
+    if(enemyStates.state === status.fall) return;
     switch (enemyKeyPressed.verticleState) {
         case keyState.verticleState.jump:
             if(enemy.body.onFloor()){
@@ -480,6 +547,7 @@ function hadouken(who, position){
         setTimeout(() => {
             hadouken1.body.setVelocityX(0);
             hadouken1.visible = false;
+            hadouken1.setPosition(800, 480);
         }, 1500);
     }else{
         if(states.color === 'cat1') socket.emit('hadouken', {who: 'cat2', position: position});
@@ -491,59 +559,62 @@ function hadouken(who, position){
         setTimeout(() => {
             hadouken2.body.setVelocityX(0);
             hadouken2.visible = false;
+            hadouken2.setPosition(800, 480);
         }, 1500);
     }
 }
 
 function update(){
     if(states.color === 'cat1') {
-        if (cursors.W.isDown && player.body.onFloor()) {
-            // keyPressed.verticleState = keyState.verticleState.jump;
-            player.body.setVelocityY(-500);
-        } else if (cursors.S.isDown) {
-            // keyPressed.verticleState = keyState.verticleState.slide;
-        } else {
-            // keyPressed.verticleState = keyState.verticleState.none;
-        }
-
-        if (cursors.A.isDown) {
-            states.dir = 'left';
-            player.setScale(-1, 1);
-            player.body.setVelocityX(-cat1velocity);
-            states.state = status.walk;
-            // keyPressed.dir = keyState.direction.left;
-        } else if (cursors.D.isDown) {
-            states.dir = 'right';
-            player.setScale(1, 1);
-            player.body.setVelocityX(cat1velocity);
-            states.state = status.walk;
-            // keyPressed.dir = keyState.direction.right;
-        } else {
-            player.body.setVelocityX(0);
-            states.state = status.stand;
-            // keyPressed.dir = keyState.direction.none;
-        }
-
-        // keyPressed.kick = keyState.kick.none;
-        cursors.SPACE.once('down', function () {
-            let distance = Phaser.Math.Distance.Between(player.body.x, player.body.y, ball.body.x, ball.body.y);
-            let velocityx;
-            // keyPressed.kick = keyState.kick.kick;
-            if (distance < 30) {
-                velocityx = (player.body.x > ball.body.x) ? -200 : 200;
-                if ((velocityx > 0 && states.dir === 'right') || (velocityx < 0 && states.dir === 'left')) {
-                    ball.body.setVelocity(velocityx, 700);
-                }
+        if(states.state !== status.fall) {
+            if (cursors.W.isDown && player.body.onFloor()) {
+                // keyPressed.verticleState = keyState.verticleState.jump;
+                player.body.setVelocityY(-500);
+            } else if (cursors.S.isDown) {
+                // keyPressed.verticleState = keyState.verticleState.slide;
+            } else {
+                // keyPressed.verticleState = keyState.verticleState.none;
             }
-        });
 
-        //hadouken
-        cursors.E.once('down', function () {
-                if(!hadouken1.visible){
-                    hadouken('cat1', player.body.position);
-                }
+            if (cursors.A.isDown) {
+                states.dir = 'left';
+                player.setScale(-1, 1);
+                player.body.setVelocityX(-cat1velocity);
+                states.state = status.walk;
+                // keyPressed.dir = keyState.direction.left;
+            } else if (cursors.D.isDown) {
+                states.dir = 'right';
+                player.setScale(1, 1);
+                player.body.setVelocityX(cat1velocity);
+                states.state = status.walk;
+                // keyPressed.dir = keyState.direction.right;
+            } else {
+                player.body.setVelocityX(0);
+                states.state = status.stand;
+                // keyPressed.dir = keyState.direction.none;
             }
-        );
+
+            // keyPressed.kick = keyState.kick.none;
+            cursors.SPACE.once('down', function () {
+                let distance = Phaser.Math.Distance.Between(player.body.x, player.body.y, ball.body.x, ball.body.y);
+                let velocityx;
+                // keyPressed.kick = keyState.kick.kick;
+                if (distance < 30) {
+                    velocityx = (player.body.x > ball.body.x) ? -200 : 200;
+                    if ((velocityx > 0 && states.dir === 'right') || (velocityx < 0 && states.dir === 'left')) {
+                        ball.body.setVelocity(velocityx, 700);
+                    }
+                }
+            });
+
+            //hadouken
+            // cursors.E.once('down', function () {
+            //         if (!hadouken1.visible) {
+            //             hadouken('cat1', player.body.position);
+            //         }
+            //     }
+            // );
+        }
 
         //update position
         states.position = player.body.position;
@@ -578,11 +649,11 @@ function update(){
         });
 
         //hadouken
-        cursors.E.once('down', function () {
-            if(!hadouken1.visible){
-                socket.emit('hadoukenKey');
-            }
-        });
+        // cursors.E.once('down', function () {
+        //     if(!hadouken1.visible){
+        //         socket.emit('hadoukenKey');
+        //     }
+        // });
 
         updateAll();
     }

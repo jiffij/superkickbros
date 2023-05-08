@@ -6,6 +6,10 @@ export const cat = {
     walk: {
         start: 16,
         end: 22,
+    },
+    fall: {
+        start: 64,
+        end: 72,
     }
 }
 
@@ -14,6 +18,7 @@ export const status = {
     walk: 1,
     jump: 2,
     slide: 3,
+    fall: 4,
 }
 
 export const keyState= {
@@ -49,3 +54,4 @@ export const hadoukenConfig = {
     height: 32,
     width: 39,
 }
+

@@ -59,6 +59,10 @@ io.on("connection", (socket)=>{
         io.emit('score', score);
     })
 
+    socket.on('fall', (who)=>{
+        io.emit('fall', who);
+    })
+
    socket.on('disconnect', ()=>{
        if(num === 1){
            players = null;
