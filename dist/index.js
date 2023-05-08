@@ -33,6 +33,8 @@ function preload() {
     this.load.spritesheet('cat1', 'assets/cat1.png', {frameWidth: 64, frameHeight: 64});
     this.load.spritesheet('cat2', 'assets/cat2.png', {frameWidth: 64, frameHeight: 64});
     this.load.image('ball', 'assets/ball.png');
+    this.load.image('gate1', 'assets/gate1.png');
+    this.load.image('gate2', 'assets/gate2.png');
 }
 
 var map;
@@ -43,6 +45,12 @@ var ball;
 var enemy;
 let kickMagnitude = 700;
 let angle = 45; // in degrees
+var net1;
+var net2;
+var cat1Score = 0;
+var cat2Score = 0;
+var text1;
+var text2;
 let radians = Phaser.Math.DegToRad(angle);
 var ballPos = new Phaser.Math.Vector2(400, 16);
 var states = {
@@ -133,6 +141,34 @@ function create() {
     this.physics.add.collider(enemy, ball);
     if(states.color === 'cat2') ball.body.allowGravity = false;
 
+    //add score
+    text1 = this.add.text(0, 0, `Score: `+cat1Score, { fontSize: '16px', fill: '#ffadad' });
+    text2 = this.add.text(700, 0, `Score: `+cat2Score, { fontSize: '16px', fill: '#93d3fa' });
+
+    //add gate
+    net1 = this.physics.add.image(8,428, 'gate1');
+    net2 = this.physics.add.image(792, 428, 'gate2');
+    net1.body.immovable = true;
+    net2.body.immovable = true;
+    net1.body.allowGravity = false;
+    net2.body.allowGravity = false;
+    net1.setScale(0.5, 0.8);
+    net2.setScale(0.5, 0.8);
+    if(states.color === 'cat1') {
+        this.physics.add.overlap(net1, ball, () => {
+            cat2Score++;
+            text2.setText(`Score: ` + cat2Score);
+            if (states.color === 'cat1') socket.emit('score', {cat1: cat1Score, cat2: cat2Score});
+            this.scene.restart();
+        })
+        this.physics.add.overlap(net2, ball, () => {
+            cat1Score++;
+            text1.setText(`Score: ` + cat1Score);
+            if (states.color === 'cat1') socket.emit('score', {cat1: cat1Score, cat2: cat2Score});
+            this.scene.restart();
+        })
+    }
+
     this.anims.create(
         {
             key: 'enemyStand',
@@ -189,6 +225,23 @@ function updateAnimState(){
     states.prestate = states.state;
 }
 
+function updateEnemyAnimState(){
+    if(enemyStates.prestate === enemyStates.state) return;
+    switch (enemyStates.state) {
+        case status.stand:
+            enemy.play('enemyStand');
+            break;
+        case status.walk:
+            enemy.play('enemyWalk');
+            break;
+        case status.jump:
+            break;
+        case status.slide:
+            break;
+    }
+    enemyStates.prestate = enemyStates.state;
+}
+
 function updateEnemyState(phaser){
     enemy.setPosition(enemyStates.position.x, enemyStates.position.y);
     enemy.body.updateBounds();
@@ -198,6 +251,10 @@ function updateAll(){
     player.setPosition(states.position.x, states.position.y);
     enemy.setPosition(enemyStates.position.x, enemyStates.position.y);
     ball.setPosition(ballPos.x, ballPos.y);
+    states.dir === 'left'? player.setScale(-1,1): player.setScale(1,1);
+    enemyStates.dir === 'left'? enemy.setScale(-1,1): enemy.setScale(1,1);
+    updateAnimState();
+    updateEnemyAnimState();
 }
 
 function enemyAction(){
@@ -292,6 +349,7 @@ function update(){
         enemyStates.position = enemy.body.position;
         ballPos = ball.body.position;
         updateAnimState();
+        updateEnemyAnimState();
         enemyAction();
     }else{//player 2
         if (cursors.W.isDown) {
@@ -337,12 +395,16 @@ socket.on('num', (num)=>{
         socket.on('updateKey', (keypress) => {
             enemyKeyPressed = keypress;
         });
-    }else{
+    }else{//cat2
         socket.on('update', (serverStates) => {
             states = serverStates['cat2'];
             enemyStates = serverStates['cat1'];
             ballPos = serverStates['ball'];
         });
+        socket.on('score', (score)=>{
+            text1.setText(`Score: `+score['cat1']);
+            text2.setText(`Score: `+score['cat2']);
+        })
     }
     var game = new Phaser.Game(config);
 });
