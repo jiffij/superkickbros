@@ -1,4 +1,4 @@
-import {cat, status, keyState} from './Sprite.js';
+import {cat, status, keyState, mushroomSprite} from './Sprite.js';
 // import {io} from "socket.io-client";
 import { io } from "https://cdn.socket.io/4.3.2/socket.io.esm.min.js";
 // import { io } from '';
@@ -35,6 +35,7 @@ function preload() {
     this.load.image('ball', 'assets/ball.png');
     this.load.image('gate1', 'assets/gate1.png');
     this.load.image('gate2', 'assets/gate2.png');
+    this.load.spritesheet('mushroom', 'assets/Mario1/Characters/Enemies.png', {frameWidth: mushroomSprite.size, frameHeight: mushroomSprite.size});
 }
 
 var map;
@@ -51,6 +52,10 @@ var cat1Score = 0;
 var cat2Score = 0;
 var text1;
 var text2;
+var mushroom;
+var mushroomVelocity = 200;
+var cat1velocity = 200;
+var cat2velocity = 200;
 let radians = Phaser.Math.DegToRad(angle);
 var ballPos = new Phaser.Math.Vector2(400, 16);
 var states = {
@@ -99,7 +104,6 @@ function create() {
     if(states.dir === 'left') player.setScale(-1,1);
     if(states.color === 'cat2') player.body.allowGravity = false;
 
-
     this.anims.create(
         {
             key: 'stand',
@@ -122,6 +126,7 @@ function create() {
         'W,A,S,D,SPACE'
     );
 
+    //blue cat
     enemy = this.physics.add.sprite(enemyStates.position.x, enemyStates.position.y, enemyStates.color);
     enemy.body.setSize(8,16);
     enemy.body.setOffset(26,40);
@@ -169,6 +174,101 @@ function create() {
         })
     }
 
+    //mushroom
+    mushroom = this.physics.add.sprite(mushroomSprite.initx, mushroomSprite.inity, 'mushroom');
+    mushroom.body.setSize(16,16);
+    mushroom.body.setOffset(8,16);
+    mushroom.setBounce(0.2, 0.2);
+    mushroom.setCollideWorldBounds(true);
+    this.physics.add.collider(groundLayer, mushroom);
+    this.physics.add.collider(mushroom, ball);
+    this.physics.add.collider(mushroom, player);
+    this.physics.add.collider(mushroom, enemy);
+    mushroom.body.setVelocityX(mushroomVelocity);
+
+    this.physics.add.overlap(player, mushroom, () => {
+        // Detect the direction of the collision
+        const overlapX = Math.abs(player.x - mushroom.x);
+        const overlapY = Math.abs(player.y - mushroom.y);
+
+        if (overlapX > overlapY) {
+            if (player.x < mushroom.x) {
+                console.log('Collision from left');
+            } else {
+                console.log('Collision from right');
+            }
+            cat1velocity = 100;
+            setTimeout(()=>{
+                cat1velocity = 200;
+            }, 2000);
+        } else {
+            if (player.y < mushroom.y) {
+                console.log('Collision from above');
+                mushroom.play('mushroomCollapse');
+                setTimeout(()=>{
+                    mushroom.play('mushroomWalk');
+                }, 2000);
+            } else {
+                console.log('Collision from below');
+            }
+        }
+    });
+
+    this.physics.add.overlap(enemy, mushroom, () => {
+        // Detect the direction of the collision
+        const overlapX = Math.abs(enemy.x - mushroom.x);
+        const overlapY = Math.abs(enemy.y - mushroom.y);
+
+        if (overlapX > overlapY) {
+            if (enemy.x < mushroom.x) {
+                console.log('Collision from left');
+            } else {
+                console.log('Collision from right');
+            }
+            cat2velocity = 100;
+            setTimeout(()=>{
+                cat2velocity = 200;
+            }, 2000);
+        } else {
+            if (enemy.y < mushroom.y) {
+                console.log('Collision from above');
+                mushroom.play('mushroomCollapse');
+                setTimeout(()=>{
+                    mushroom.play('mushroomWalk');
+                }, 2000);
+            } else {
+                console.log('Collision from below');
+            }
+        }
+    });
+
+    // this.physics.add.collider(groundLayer, mushroom, ()=>{
+    //     console.log('colliding');
+    //     mushroomVelocity = -mushroomVelocity;
+    //     mushroom.body.setVelocityX(mushroomVelocity);
+    // })
+
+    this.anims.create(
+        {
+            key: 'mushroomWalk',
+            frames: this.anims.generateFrameNumbers('mushroom', {start: mushroomSprite.start, end: mushroomSprite.end}),
+            frameRate: 4,
+            repeat: -1,
+        }
+    );
+
+    this.anims.create(
+        {
+            key: 'mushroomCollapse',
+            frames: this.anims.generateFrameNumbers('mushroom', {start:mushroomSprite.collapse, end: mushroomSprite.collapse}),
+            frameRate: 1,
+            repeat: -1,
+        }
+    );
+
+    mushroom.play('mushroomWalk');
+
+    //blue cat animation
     this.anims.create(
         {
             key: 'enemyStand',
@@ -187,6 +287,7 @@ function create() {
 
     enemy.play('enemyStand');
 
+    //events
     if(states.color === 'cat1'){
         setInterval(()=>{
             socket.emit('update', {cat1: states, cat2: enemyStates, ball: ballPos});//states
@@ -275,13 +376,13 @@ function enemyAction(){
         case keyState.direction.left:
             enemyStates.dir = 'left';
             enemy.setScale(-1,1);
-            enemy.body.setVelocityX(-200);
+            enemy.body.setVelocityX(-cat2velocity);
             enemyStates.state = status.walk;
             break;
         case keyState.direction.right:
             enemyStates.dir = 'right';
             enemy.setScale(1,1);
-            enemy.body.setVelocityX(200);
+            enemy.body.setVelocityX(cat2velocity);
             enemyStates.state = status.walk;
             break;
         case keyState.direction.none:
@@ -317,13 +418,13 @@ function update(){
         if (cursors.A.isDown) {
             states.dir = 'left';
             player.setScale(-1, 1);
-            player.body.setVelocityX(-200);
+            player.body.setVelocityX(-cat1velocity);
             states.state = status.walk;
             // keyPressed.dir = keyState.direction.left;
         } else if (cursors.D.isDown) {
             states.dir = 'right';
             player.setScale(1, 1);
-            player.body.setVelocityX(200);
+            player.body.setVelocityX(cat1velocity);
             states.state = status.walk;
             // keyPressed.dir = keyState.direction.right;
         } else {

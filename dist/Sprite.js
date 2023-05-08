@@ -34,3 +34,11 @@ export const keyState= {
     }
 }
 
+export const mushroomSprite = {
+    start: 0,
+    end: 1,
+    collapse: 2,
+    size: 32,
+    initx: 400,
+    inity: 300,
+}
