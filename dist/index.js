@@ -50,6 +50,7 @@ var cursors;
 var groundLayer, coinLayer;
 var ball;
 var enemy;
+var timer;
 // var hadouken;
 let kickMagnitude = 700;
 let angle = 45; // in degrees
@@ -104,6 +105,14 @@ var enemyKeyPressed = {
 }
 
 function create() {
+    timer = this.time.addEvent({
+        delay: 180000,
+        callback: () => {
+            console.log('Time is up!');
+            this.scene.stop('main');
+        }
+    });
+
     map = this.make.tilemap({key: 'map', tileHeight: 16, tileWidth: 16});
     const tileset = map.addTilesetImage('3', 'base_tiles');
     groundLayer = map.createLayer('Tile Layer 1', tileset, 0, 0);
