@@ -37,6 +37,9 @@ function preload() {
     this.load.image('gate2', 'assets/gate2.png');
     this.load.spritesheet('mushroom', 'assets/Mario1/Characters/Enemies.png', {frameWidth: mushroomSprite.size, frameHeight: mushroomSprite.size});
     this.load.spritesheet('hadouken', 'assets/hadouken.png', {frameWidth: hadoukenConfig.width, frameHeight: hadoukenConfig.height});
+    this.load.audio('winSound', 'assets/win.mp3');
+    this.load.audio('hadoukenSound', 'assets/hadouken.mp3');
+    this.load.audio('kickSound', 'assets/kick.mp3');
 }
 
 
@@ -68,6 +71,9 @@ var ballPos = new Phaser.Math.Vector2(400, 16);
 var hadouken1;
 var hadouken2;
 let sequenceIndex = 0;
+var winSound;
+var hadoukenSound;
+var kickSound;
 
 var states = {
     dir: 'right',
@@ -142,9 +148,15 @@ function create() {
 
     player.play('stand');
 
+    //inputs
     cursors = this.input.keyboard.addKeys(
         'W,A,S,D,SPACE,E,J,K,L'
     );
+
+    //sound effects
+    winSound = this.sound.add('winSound');
+    hadoukenSound = this.sound.add('hadoukenSound');
+    kickSound = this.sound.add('kickSound');
 
     //blue cat
     enemy = this.physics.add.sprite(enemyStates.position.x, enemyStates.position.y, enemyStates.color);
@@ -184,12 +196,14 @@ function create() {
             cat2Score++;
             text2.setText(`Score: ` + cat2Score);
             if (states.color === 'cat1') socket.emit('score', {cat1: cat1Score, cat2: cat2Score});
+            winSound.play();
             this.scene.restart();
         })
         this.physics.add.overlap(net2, ball, () => {
             cat1Score++;
             text1.setText(`Score: ` + cat1Score);
             if (states.color === 'cat1') socket.emit('score', {cat1: cat1Score, cat2: cat2Score});
+            winSound.play();
             this.scene.restart();
         })
     }
@@ -361,6 +375,7 @@ function create() {
                 states.color === 'cat1' ?
                     hadouken('cat1', player.body.position) : socket.emit('hadoukenKey');
             }
+            sequenceIndex = 0;
         } else sequenceIndex = 0;
     });
 
@@ -375,6 +390,8 @@ function create() {
             if(distance < 30){
                 velocityx = (enemy.body.x > ball.body.x)? -200: 200;
                 if((velocityx > 0 && enemyStates.dir === 'right') || (velocityx < 0 && enemyStates.dir === 'left')){
+                    kickSound.play();
+                    socket.emit('kickSound');
                     ball.body.setVelocity(velocityx,700);
                 }
             }
@@ -411,6 +428,7 @@ function create() {
         });
         socket.on('score', (score)=>{
             this.scene.restart();
+            winSound.play();
             setTimeout(()=>{
                 text1.setText(`Score: `+score['cat1']);
                 text2.setText(`Score: `+score['cat2']);
@@ -422,6 +440,9 @@ function create() {
            setTimeout(()=>{
                victimState.state = status.stand;
            }, 2000);
+        });
+        socket.on('kickSound', ()=>{
+            kickSound.play();
         });
     }
 }
@@ -537,6 +558,7 @@ function enemyAction(){
 }
 
 function hadouken(who, position){
+    hadoukenSound.play();
     if(who === 'cat1') {
         if(states.color === 'cat1') socket.emit('hadouken', {who: 'cat1', position: position});
         hadouken1.setPosition(position.x, position.y);
@@ -603,6 +625,8 @@ function update(){
                     velocityx = (player.body.x > ball.body.x) ? -200 : 200;
                     if ((velocityx > 0 && states.dir === 'right') || (velocityx < 0 && states.dir === 'left')) {
                         ball.body.setVelocity(velocityx, 700);
+                        kickSound.play();
+                        socket.emit('kickSound');
                     }
                 }
             });

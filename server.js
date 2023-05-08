@@ -63,6 +63,10 @@ io.on("connection", (socket)=>{
         io.emit('fall', who);
     })
 
+    socket.on('kickSound', ()=>{
+        io.emit('kickSound');
+    });
+
    socket.on('disconnect', ()=>{
        if(num === 1){
            players = null;
