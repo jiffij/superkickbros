@@ -139,13 +139,13 @@ io.on("connection", (socket)=>{
         io.emit('kickSound');
     });
 
-   socket.on('disconnect', ()=>{
-       if(num === 1){
-           players = null;
-           num--;
-       }
-
-    })
+   // socket.on('disconnect', ()=>{
+   //     if(num === 1){
+   //         players = null;
+   //         num--;
+   //     }
+   //
+   //  })
 
 });
 
