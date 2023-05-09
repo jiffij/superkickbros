@@ -125,6 +125,7 @@ io.on("connection", (socket)=>{
                 console.log("disconnected");
             }
         }
+        console.log(roomId);
         if(roomId !== null){
             // Rooms[roomId].players = null;
             Rooms[roomId].cat2Key = null;
@@ -135,7 +136,7 @@ io.on("connection", (socket)=>{
     // <<<<<<<<<<<<<<<<<<<<<<< End of Lab 6 Code >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     console.log("a user connected");
     console.log(socket.id);
-    let roomId;
+    let roomId = null;
     // if(num >= 2){socket.disconnect(true); return;}
 
     socket.on('join', ()=>{
@@ -144,6 +145,7 @@ io.on("connection", (socket)=>{
                 socket.emit('num', Rooms[key].num++);
                 roomId = key;
                 socket.join(roomId);
+                console.log(roomId);
                 break;
             }
         }
