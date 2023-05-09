@@ -111,7 +111,7 @@ io.on("connection", (socket)=>{
         // const user = socket.request.session.user;
 
         if(USER[socket.id] !== null) {
-            if (USER[socket.id].username in onlineUsers) {
+            if (USER[socket.id].username !== null && USER[socket.id].username in onlineUsers) {
                 delete onlineUsers[USER[socket.id].username]
                 io.emit("remove user", JSON.stringify(USER[socket.id]))
                 delete USER[socket.id]
@@ -126,7 +126,7 @@ io.on("connection", (socket)=>{
             }
         }
         if(roomId !== null){
-            Rooms[roomId].players = null;
+            // Rooms[roomId].players = null;
             Rooms[roomId].cat2Key = null;
             Rooms[roomId].num--;
         }
@@ -222,7 +222,7 @@ const onlineUsers = {};
 const USER = {};
 
 // Use the 'public' folder to serve static files
-app.use(express.static("public"));
+// app.use(express.static("public"));
 
 // Use the json middleware to parse JSON data
 app.use(express.json());
