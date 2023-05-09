@@ -6,6 +6,10 @@ export const cat = {
     walk: {
         start: 16,
         end: 22,
+    },
+    fall: {
+        start: 64,
+        end: 72,
     }
 }
 
@@ -14,6 +18,7 @@ export const status = {
     walk: 1,
     jump: 2,
     slide: 3,
+    fall: 4,
 }
 
 export const keyState= {
@@ -32,5 +37,21 @@ export const keyState= {
         none: 0,
         kick: 1,
     }
+}
+
+export const mushroomSprite = {
+    start: 0,
+    end: 1,
+    collapse: 2,
+    size: 32,
+    initx: 400,
+    inity: 300,
+}
+
+export const hadoukenConfig = {
+    start: 0,
+    end: 3,
+    height: 32,
+    width: 39,
 }
 
