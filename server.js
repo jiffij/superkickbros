@@ -13,13 +13,15 @@ const io = new Server(server);
 
 app.use(express.static(DIST_DIR));
 
-app.get('/game', (req, res) => {
+app.get('/game',  (req, res) => {
+    res.sendFile(SIGNUP_FILE);
+})
+
+app.get('/login', (req, res) => {
     res.sendFile(HTML_FILE);
 })
 
-app.get('/login',  (req, res) => {
-    res.sendFile(SIGNUP_FILE);
-})
+
 
 server.listen(port, function (){
     console.log("server started");
@@ -108,18 +110,20 @@ io.on("connection", (socket)=>{
         // Remove the user from the online user list
         // const user = socket.request.session.user;
 
-        if(USER[socket.id].username in onlineUsers){
-            delete onlineUsers[USER[socket.id].username]
-            io.emit("remove user", JSON.stringify(USER[socket.id]))
-            delete USER[socket.id]
+        if(USER[socket.id] !== null) {
+            if (USER[socket.id].username in onlineUsers) {
+                delete onlineUsers[USER[socket.id].username]
+                io.emit("remove user", JSON.stringify(USER[socket.id]))
+                delete USER[socket.id]
 
-            // Added Code
-            // if(Rooms[roomId].num === 1){
-            //     Rooms[roomId].players = null;
-            //     Rooms[roomId].num--;
-            // }
-            // End of added code
-            console.log("disconnected");
+                // Added Code
+                // if(Rooms[roomId].num === 1){
+                //     Rooms[roomId].players = null;
+                //     Rooms[roomId].num--;
+                // }
+                // End of added code
+                console.log("disconnected");
+            }
         }
         if(roomId !== null){
             Rooms[roomId].players = null;
