@@ -9,6 +9,7 @@ const HTML_FILE = path.join(DIST_DIR, 'index.html');
 const server = http.createServer(app);
 const io = new Server(server);
 
+
 app.use(express.static(DIST_DIR));
 
 app.get('/', (req, res) => {
@@ -37,7 +38,7 @@ io.on("connection", (socket)=>{
 
     if(USER[socket.id] != null){
         onlineUsers[USER[socket.id].username] = {
-            avatar: USER[socket.id].avatar,    
+            avatar: USER[socket.id].avatar,
             name: USER[socket.id].name,
         }
         io.emit("add user", JSON.stringify(USER[socket.id]));
@@ -135,13 +136,17 @@ io.on("connection", (socket)=>{
         io.emit('fall', who);
     })
 
-//    socket.on('disconnect', ()=>{
-//        if(num === 1){
-//            players = null;
-//            num--;
-//        }
+    socket.on('kickSound', ()=>{
+        io.emit('kickSound');
+    });
 
-//    })
+   // socket.on('disconnect', ()=>{
+   //     if(num === 1){
+   //         players = null;
+   //         num--;
+   //     }
+   //
+   //  })
 
 });
 
@@ -158,6 +163,7 @@ setInterval(() => {
         io.emit('updateKey', cat2Key);
     }
 }, 10);
+
 
 // <<<<<<<<<<<<<<<<<<<<<<< Start of Lab 6 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -199,7 +205,7 @@ app.post("/register", (req, res) => {
     // D. Reading the users.json file
     //
     const json = JSON.parse(fs.readFileSync("./data/users.json"));
-     console.log(json);
+    console.log(json);
 
     //
     // E. Checking for the user data correctness
@@ -227,7 +233,7 @@ app.post("/register", (req, res) => {
         "name": name,
         "password": hash,
     }
-    
+
 
 
     //
@@ -239,7 +245,7 @@ app.post("/register", (req, res) => {
     //
     res.json({ status: "success" });
     // Delete when appropriate
-   
+
 });
 
 // Handle the /signin endpoint
@@ -260,7 +266,7 @@ app.post("/signin", (req, res) => {
     }
 
     const hashedPassword = json[username].password;
-    
+
     if(!bcrypt.compareSync(password, hashedPassword)){
         return res.json({ status: "error", error: "The password is wrong." });
     }
@@ -272,7 +278,7 @@ app.post("/signin", (req, res) => {
 
     res.json({ status: "success", user: {username: username, avatar: json[username].avatar, name: json[username].name}});
     // Delete when appropriate
-    
+
 });
 
 // Handle the /validate endpoint
@@ -290,9 +296,9 @@ app.get("/validate", (req, res) => {
     // D. Sending a success response with the user account
     //
     res.json({ status: "success", user: usersession});
- 
+
     // Delete when appropriate
-    
+
 });
 
 // Handle the /signout endpoint
@@ -307,14 +313,14 @@ app.get("/signout", (req, res) => {
         } else {
             return res.json({ status: "success"});
         }
-      });
+    });
 
     //
     // Sending a success response
     //
- 
+
     // Delete when appropriate
-    
+
 });
 
 
@@ -339,17 +345,17 @@ io.use((socket, next) => {
 //         USER[socket.id] = socket.request.session.user;
 //     }
 //     // const Username = user.username;
-    
+
 //     if(USER[socket.id] != null){
 //         onlineUsers[USER[socket.id].username] = {
-//             avatar: USER[socket.id].avatar,    
+//             avatar: USER[socket.id].avatar,
 //             name: USER[socket.id].name,
 //         }
 //         io.emit("add user", JSON.stringify(USER[socket.id]));
 //         console.log(onlineUsers);
 //     }
 
-    
+
 
 //     socket.on("get users", () => {
 //         // Send the online users to the browser
@@ -379,7 +385,7 @@ io.use((socket, next) => {
 //     socket.on("typing", ()=>{
 //         io.emit("entering", USER[socket.id].username);
 //     });
-    
+
 //     // console.log(onlineUsers);
 //     socket.on("disconnect", () => {
 //         // Remove the user from the online user list
