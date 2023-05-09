@@ -694,7 +694,7 @@ function update(){
 
 const socket = io();
 
-// socket.emit('join');
+socket.emit('join');
 
 socket.on('num', (num)=>{
     if(num === 1){
@@ -721,9 +721,9 @@ socket.on('num', (num)=>{
     game = new Phaser.Game(config);
 });
 
-function startgame() {
-    console.log('This function is workable')
-    socket.emit('join');
-    //game = new Phaser.Game(config);
-    console.log('The game has generated')
-}
+// function startgame() {
+//     console.log('This function is workable')
+//     socket.emit('join');
+//     //game = new Phaser.Game(config);
+//     console.log('The game has generated')
+// }
