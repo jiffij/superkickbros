@@ -1,22 +1,3 @@
-<!-- <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Super Kick Bros</title>
-<!--    <script src="https://cdn.jsdelivr.net/npm/phaser@3.15.1/dist/phaser-arcade-physics.min.js"></script>-->
-    <script src="./phaser.js"></script>
-    <script type="module" src="socket.io/client-dist/socket.io.min.js"></script>
-    <script type="module" src="./index.js"></script> <!-- Used to run the game 
-    <script type="module" src="./Sprite.js"></script>
-</head>
-<body>
-
-
-</body>
-</html> -->
-
-
-<!--
 <!DOCTYPE html>
 <html>
 <head>
@@ -24,7 +5,6 @@
     <script src="https://code.jquery.com/jquery-3.6.1.min.js"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link href="style.css" rel="stylesheet">
-    
 </head>
 <body>
     <div id="container" class="col">
@@ -90,17 +70,13 @@
             </form>
         </div>
     </div>
-    
+
     <script src="/socket.io/socket.io.min.js"></script>
     <script src="scripts/socket.js"></script>
     <script src="scripts/avatar.js"></script>
     <script src="scripts/ui.js"></script>
     <script src="scripts/registration.js"></script>
     <script src="scripts/authentication.js"></script>
-
-    <input type = "button" onclick = "startgame()" value = "Display">
-
-
     <script>
     $(document).ready(function() {
         // Initialize the UI
@@ -112,13 +88,12 @@
                 SignInForm.hide();
                 UserPanel.update(Authentication.getUser());
                 UserPanel.show();
+
                 Socket.connect();
             },
             () => { SignInForm.show(); }
         );
     });
     </script>
-
 </body>
 </html>
--->

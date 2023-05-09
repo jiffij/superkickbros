@@ -6,6 +6,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 const DIST_DIR = path.join(__dirname, '/dist');
 const HTML_FILE = path.join(DIST_DIR, 'index.html');
+const SIGNUP_FILE = path.join(DIST_DIR, 'signup.html');
 const server = http.createServer(app);
 const io = new Server(server);
 
@@ -16,6 +17,10 @@ app.get('/', (req, res) => {
     res.sendFile(HTML_FILE);
 })
 
+app.get('/login',  (req, res) => {
+    res.sendFile(SIGNUP_FILE);
+})
+
 server.listen(port, function (){
     console.log("server started");
 });
@@ -24,6 +29,28 @@ server.listen(port, function (){
 var players;
 var num = 0;
 var cat2Key;
+let Rooms ={
+    '1': {
+        num: 0,
+        cat2Key: null,
+        players: null,
+    },
+    '2': {
+        num: 0,
+        cat2Key: null,
+        players: null,
+    },
+    '3': {
+        num: 0,
+        cat2Key: null,
+        players: null,
+    },
+    '4': {
+        num: 0,
+        cat2Key: null,
+        players: null,
+    }
+};
 io.on("connection", (socket)=>{
 
     // <<<<<<<<<<<<<<<<<<<<<<< Start of Lab 6 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -80,64 +107,77 @@ io.on("connection", (socket)=>{
     socket.on("disconnect", () => {
         // Remove the user from the online user list
         // const user = socket.request.session.user;
+
         if(USER[socket.id].username in onlineUsers){
             delete onlineUsers[USER[socket.id].username]
             io.emit("remove user", JSON.stringify(USER[socket.id]))
             delete USER[socket.id]
 
             // Added Code
-            if(num === 1){
-                players = null;
-                num--;
-            }
+            // if(Rooms[roomId].num === 1){
+            //     Rooms[roomId].players = null;
+            //     Rooms[roomId].num--;
+            // }
             // End of added code
             console.log("disconnected");
         }
-        // console.log(onlineUsers);
+        if(roomId !== null){
+            Rooms[roomId].players = null;
+            Rooms[roomId].cat2Key = null;
+            Rooms[roomId].num--;
+        }
     });
 
     // <<<<<<<<<<<<<<<<<<<<<<< End of Lab 6 Code >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     console.log("a user connected");
-    var id = socket.id;
     console.log(socket.id);
-    if(num >= 2){socket.disconnect(true); return;}
+    let roomId;
+    // if(num >= 2){socket.disconnect(true); return;}
 
     socket.on('join', ()=>{
-        socket.emit('num', num++);
-    })
+        for(let key in Rooms){
+            if(Rooms[key].num < 2){
+                socket.emit('num', Rooms[key].num++);
+                roomId = key;
+                socket.join(roomId);
+                break;
+            }
+        }
+        console.log(roomId);
+    });
 
     socket.on('update',(states)=>{
-        players = states;
+        Rooms[roomId].players = states;
         // console.log(states);
     });
 
     socket.on('hadouken', (data)=>{
         data.who = data.who === 'cat1'? 'cat2': 'cat1';
-        io.emit('hadouken', data);
+        io.to(roomId).emit('hadouken', data);
     })
 
     socket.on('hadoukenKey', ()=>{
-        io.emit('hadoukenKey');
+        io.to(roomId).emit('hadoukenKey');
     });
 
     socket.on('updateKey', (keypressed)=>{
-        cat2Key = keypressed;
+        Rooms[roomId].cat2Key = keypressed;
     })
 
     socket.on('cat2kick', ()=>{
-        io.emit('kick');
+        io.to(roomId).emit('kick');
     })
 
     socket.on('score', (score)=>{
-        io.emit('score', score);
+        io.to(roomId).emit('score', score);
     })
 
     socket.on('fall', (who)=>{
-        io.emit('fall', who);
+        io.to(roomId).emit('fall', who);
     })
 
     socket.on('kickSound', ()=>{
-        io.emit('kickSound');
+        io.to(roomId).emit('kickSound');
     });
 
    // socket.on('disconnect', ()=>{
@@ -150,17 +190,19 @@ io.on("connection", (socket)=>{
 
 });
 
-intervalId = setInterval(() => {
-    if(num === 2){
-        // console.log('update');
-        io.emit('update', players);
+setInterval(() => {
+    for(let key in Rooms) {
+        if (Rooms[key].num === 2) {
+            io.to(key).emit('update', Rooms[key].players);
+        }
     }
 }, 10);
 
 setInterval(() => {
-    if(num === 2){
-        // console.log('update');
-        io.emit('updateKey', cat2Key);
+    for(let key in Rooms) {
+        if (Rooms[key].num === 2) {
+            io.to(key).emit('updateKey', Rooms[key].cat2Key);
+        }
     }
 }, 10);
 
