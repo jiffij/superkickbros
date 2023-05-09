@@ -13,7 +13,7 @@ const io = new Server(server);
 
 app.use(express.static(DIST_DIR));
 
-app.get('/', (req, res) => {
+app.get('/game', (req, res) => {
     res.sendFile(HTML_FILE);
 })
 
