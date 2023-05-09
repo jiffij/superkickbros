@@ -11,8 +11,15 @@ const COLOR_DARK = 0xffffff;
 class GameEnd extends Phaser.Scene {
     constructor() {
         super({
-            key: 'examples'
+            key: 'GameEnd',
         })
+    }
+
+    init (data) {
+        //this.winner = data.winner;
+        this.redCatScore = data.cat1Score;
+        this.blueCatScore = data.cat2Score;
+        this.winner = JSON.stringify(data);
     }
 
     preload() { 
@@ -28,10 +35,10 @@ class GameEnd extends Phaser.Scene {
 
     create() {
         const bgColor = Phaser.Display.Color.HexStringToColor("#000000");
-        bgColor.alpha = 0.5;
+        bgColor.alpha = 0.1;
         this.cameras.main.setBackgroundColor(bgColor.color);
 
-        const button = this.add.text(650, 47, '⭐Back', { fill: '#fff',fontStyle: 'bold',})
+        const button = this.add.text(650, 47, '⭐ Back', { fill: '#fff',fontStyle: 'bold',})
             .setInteractive({ useHandCursor: true })
             .on('pointerdown', () => {
                 // navigate to another scene
@@ -53,71 +60,171 @@ class GameEnd extends Phaser.Scene {
             color: '#F9E83E'
           }).setOrigin(0.5, 0);
           
-        const name1 = this.add.text(65, 140, 'player1', {
-            fontSize: 18,
-            color: '#3CD33A'
-        });
+        
 
-        const name2 = this.add.text(660, 140, 'player2', {
-            fontSize: 18,
-            color: '#3CD33A'
-        });
+        
 
-        const player1 = this.add.sprite(this.game.config.width / 8, this.game.config.height / 2-20, 'cat1');
-        player1.setScale(3);
+        //depends on winner
+        if (this.redCatScore > this.blueCatScore) {
 
-        const player2 = this.add.sprite(this.game.config.width / 8*7-20, this.game.config.height / 2-20, 'cat2');
-        player2.setScale(-3,3);
+            const redCatName = this.add.text(65, 140, 'Reddy', {
+                fontSize: 18,
+                fontStyle: 'bold',
+                color: '#F9E83E'
+            });
+            // Create a tween to change the alpha value of the text over time
+            this.tweens.add({
+                targets: redCatName,
+                alpha: 0.2,
+                duration: 200,
+                yoyo: true,
+                repeat: -1
+            });
+            const blueCatName = this.add.text(660, 140, 'Bluey', {
+                fontSize: 18,
+                color: '#ffffff'
+            });
 
-        this.anims.create(
-            {
-                key: 'dance',
-                frames: this.anims.generateFrameNumbers('cat1', { start: cat.dance.start, end: cat.dance.end}),
-                frameRate: 10,
+            const redCat = this.add.sprite(this.game.config.width / 8, this.game.config.height / 2-20, 'cat1');
+            redCat.setScale(3);
+
+            const blueCat = this.add.sprite(this.game.config.width / 8*7-20, this.game.config.height / 2-20, 'cat2');
+            blueCat.setScale(-3,3);
+
+            this.anims.create(
+                {
+                    key: 'dance',
+                    frames: this.anims.generateFrameNumbers('cat1', { start: cat.dance.start, end: cat.dance.end}),
+                    frameRate: 10,
+                    repeat: -1
+                });
+    
+            this.anims.create(
+                {
+                    key: 'fall',
+                    frames: this.anims.generateFrameNumbers('cat2', { start: cat.fall.start, end: 70}),
+                    frameRate: 8,
+                    repeat: 0
+                });
+            redCat.play('dance');
+            blueCat.play('fall');
+
+            const container1 = this.add.container(this.game.config.width / 8-68, this.game.config.height / 2+80);
+            const graphics1 = this.add.graphics();
+            container1.add(graphics1);
+            graphics1.lineStyle(3, 0xF9E83E, 1);
+                    
+            var height = 40;
+            var width = 130;
+            graphics1.strokeRoundedRect(0, 0, width, height, 10);
+            const text1 = this.add.text(width/2, height/2, this.redCatScore + ' points', {
+                fontSize: 15,
+                fontStyle: 'bold',
+                color: '#F9E83E'
+            });
+            text1.setOrigin(0.5,0.5);
+            container1.add(text1);
+
+            const container2 = this.add.container(this.game.config.width / 8*7-68, this.game.config.height / 2+80);
+            const graphics2 = this.add.graphics();
+            container2.add(graphics2);
+            graphics2.lineStyle(1, 0xffffff, 1);
+                    
+            var height = 40;
+            var width = 130;
+            graphics2.strokeRoundedRect(0, 0, width, height, 10);
+            const text2 = this.add.text(width/2, height/2, this.blueCatScore + ' points', {
+                fontSize: 15,
+                color: '#ffffff'
+            });
+            text2.setOrigin(0.5,0.5);
+            container2.add(text2);
+        }
+        else {
+
+            const redCatName = this.add.text(65, 140, 'Reddy', {
+                fontSize: 18,
+                color: '#ffffff'
+            });
+            
+    
+            const blueCatName = this.add.text(670, 140, 'Bluey', {
+                fontSize: 18,
+                fontStyle: 'bold',
+                color: '#F9E83E'
+            });
+
+            this.tweens.add({
+                targets: blueCatName,
+                alpha: 0.2,
+                duration: 200,
+                yoyo: true,
                 repeat: -1
             });
 
-        this.anims.create(
-            {
-                key: 'shutdown',
-                frames: this.anims.generateFrameNumbers('cat1', { start: cat.shutdown.start, end: cat.shutdown.end}),
-                frameRate: 8,
-                repeat: 0
+            const redCat = this.add.sprite(this.game.config.width / 8+10, this.game.config.height / 2-20, 'cat1');
+            redCat.setScale(3);
+
+            const blueCat = this.add.sprite(this.game.config.width / 8*7-10, this.game.config.height / 2-20, 'cat2');
+            blueCat.setScale(-3,3);
+            
+            this.anims.create(
+                {
+                    key: 'dance',
+                    frames: this.anims.generateFrameNumbers('cat2', { start: cat.dance.start, end: cat.dance.end}),
+                    frameRate: 10,
+                    repeat: -1
+                });
+    
+            this.anims.create(
+                {
+                    key: 'fall',
+                    frames: this.anims.generateFrameNumbers('cat1', { start: cat.fall.start, end: 70}),
+                    frameRate: 8,
+                    repeat: 0
+                });
+            blueCat.play('dance');
+            redCat.play('fall');
+
+
+            const container1 = this.add.container(this.game.config.width / 8-68, this.game.config.height / 2+80);
+            const graphics1 = this.add.graphics();
+            container1.add(graphics1);
+            graphics1.lineStyle(1, 0xffffff, 1);
+                    
+            var height = 40;
+            var width = 130;
+            graphics1.strokeRoundedRect(0, 0, width, height, 10);
+            const text1 = this.add.text(width/2, height/2, this.redCatScore + ' points', {
+                fontSize: 15,
+                color: '#ffffff'
             });
-        player1.play('dance');
-        player2.play('shutdown');
+            text1.setOrigin(0.5,0.5);
+            container1.add(text1);
+
+            const container2 = this.add.container(this.game.config.width / 8*7-68, this.game.config.height / 2+80);
+            const graphics2 = this.add.graphics();
+            container2.add(graphics2);
+            graphics2.lineStyle(3, 0xF9E83E, 1);
+                    
+            var height = 40;
+            var width = 130;
+            graphics2.strokeRoundedRect(0, 0, width, height, 10);
+            const text2 = this.add.text(width/2, height/2, this.blueCatScore + ' points', {
+                fontSize: 15,
+                fontStyle: 'bold',
+                color: '#F9E83E'
+            });
+            text2.setOrigin(0.5,0.5);
+            container2.add(text2);
+        }
+        
 
         
             
-        const container1 = this.add.container(this.game.config.width / 8-68, this.game.config.height / 2+80);
-        const graphics1 = this.add.graphics();
-        container1.add(graphics1);
-        graphics1.lineStyle(1, 0xffffff, 1);
-                
-        var height = 40;
-        var width = 130;
-        graphics1.strokeRoundedRect(0, 0, width, height, 10);
-        const text1 = this.add.text(width/2, height/2, 'score1', {
-            fontSize: 15,
-            color: '#ffffff'
-        });
-        text1.setOrigin(0.5,0.5);
-        container1.add(text1);
+        
 
-        const container2 = this.add.container(this.game.config.width / 8*7-68, this.game.config.height / 2+80);
-        const graphics2 = this.add.graphics();
-        container2.add(graphics2);
-        graphics2.lineStyle(1, 0xffffff, 1);
-                
-        var height = 40;
-        var width = 130;
-        graphics2.strokeRoundedRect(0, 0, width, height, 10);
-        const text2 = this.add.text(width/2, height/2, 'score2', {
-            fontSize: 15,
-            color: '#ffffff'
-        });
-        text2.setOrigin(0.5,0.5);
-        container2.add(text2);
+        
 
         //table
         var scrollMode = 0; // 0:vertical, 1:horizontal
@@ -281,25 +388,6 @@ class GameEnd extends Phaser.Scene {
         //             .scrollToBottom()
         //         console.log(`Create ${itemCount} items`)
         //     })  
-        
-        
-        // this.anims.create(
-        //     {
-        //         key: 'dance',
-        //         frames: this.anims.generateFrameNumbers('cat1', { start: cat.dance.start, end: cat.dance.end}),
-        //         frameRate: 10,
-        //         repeat: -1
-        //     });
-
-        // this.anims.create(
-        //     {
-        //         key: 'shutdown',
-        //         frames: this.anims.generateFrameNumbers('cat1', { start: cat.shutdown.start, end: cat.shutdown.end}),
-        //         frameRate: 8,
-        //         repeat: 0
-        //     });
-
-        // player1.play('dance');
     }
 
     update() {
@@ -359,13 +447,13 @@ var CreateFooterButton = function (scene, text, orientation) {
         })  
 }
 
-var config = {
-    type: Phaser.AUTO,
-    parent: 'phaser-example',
-    width: 800,
-    height: 480,
-    scene: GameEnd
-};
+// var config = {
+//     type: Phaser.AUTO,
+//     parent: 'main',
+//     width: 800,
+//     height: 480,
+//     scene: GameEnd
+// };
 
-var game = new Phaser.Game(config);
+//var game = new Phaser.Game(config);
 export default GameEnd;

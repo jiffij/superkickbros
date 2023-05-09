@@ -10,6 +10,10 @@ export const cat = {
     fall: {
         start: 64,
         end: 72,
+    },
+    dance: {
+        start: 128,
+        end: 139,
     }
 }
 
