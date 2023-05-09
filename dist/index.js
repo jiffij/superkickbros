@@ -1,6 +1,8 @@
 import {cat, status, keyState, mushroomSprite, hadoukenConfig} from './Sprite.js';
 // import {io} from "socket.io-client";
 import { io } from "https://cdn.socket.io/4.3.2/socket.io.esm.min.js";
+import GameEnd from './scenes/game_end.js';
+import HomeScene from './scenes/login_signup.js';
 // import { io } from '';
 
 var config = {
@@ -184,13 +186,27 @@ function create() {
             cat2Score++;
             text2.setText(`Score: ` + cat2Score);
             if (states.color === 'cat1') socket.emit('score', {cat1: cat1Score, cat2: cat2Score});
-            this.scene.restart();
+            if (cat1Score < 1 && cat2Score < 1) this.scene.restart();
+            else {
+                var winner = 'winner';
+                if (cat1Score > cat2Score) winner = 'cat1';
+                else winner = 'cat2';
+                const gameEnd = this.scene.add('GameEnd', GameEnd, false);
+                this.scene.start('GameEnd', {winner: winner, cat1Score: cat1Score, cat2Score: cat2Score});
+            }
         })
         this.physics.add.overlap(net2, ball, () => {
             cat1Score++;
             text1.setText(`Score: ` + cat1Score);
             if (states.color === 'cat1') socket.emit('score', {cat1: cat1Score, cat2: cat2Score});
-            this.scene.restart();
+            if (cat1Score < 1 && cat2Score < 1) this.scene.restart();
+            else {
+                var winner = 'winner';
+                if (cat1Score > cat2Score) winner = 'cat1';
+                else winner = 'cat2';
+                const gameEnd = this.scene.add('GameEnd', GameEnd, false);
+                this.scene.start('GameEnd', {winner: winner, cat1Score: cat1Score, cat2Score: cat2Score});
+            }
         })
     }
 
@@ -687,6 +703,9 @@ socket.on('num', (num)=>{
 
     }
     game = new Phaser.Game(config);
+    const home = game.scene.add('HomeScene', HomeScene, false);
+    game.scene.start('HomeScene');
+    
 });
 
 
