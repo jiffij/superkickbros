@@ -20,6 +20,9 @@ class GameEnd extends Phaser.Scene {
         this.redCatScore = data.cat1Score;
         this.blueCatScore = data.cat2Score;
         this.winner = JSON.stringify(data);
+        this.redusername = "reddy";
+        this.blueusername = "bluey";
+        this.res;
     }
 
     preload() { 
@@ -30,19 +33,133 @@ class GameEnd extends Phaser.Scene {
             key: 'rexuiplugin',
             url: 'https://raw.githubusercontent.com/rexrainbow/phaser3-rex-notes/master/dist/rexuiplugin.min.js',
             sceneKey: 'rexUI'
-        });      
+        });
+
     }
 
     create() {
+        var winner;
+        if (this.redCatScore>this.blueCatScore) {winner = {username: this.redusername}}
+        else winner = {username: this.blueusername}
+        console.log("fetching...");
+        fetch('/updateRank', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(winner)
+          }).then((res) => res.json())
+          .then((json) => {
+            
+            this.res = json;
+            console.log("doneeeeee");
+
+
+            console.log("makeTable");
+            console.log(this.res);
+            //table
+            var scrollMode = 0; // 0:vertical, 1:horizontal
+            var gridTable = this.rexUI.add.gridTable({
+                x: 397.5,
+                y: 270,
+                width: (scrollMode === 0) ? 350 : 420,
+                height: (scrollMode === 0) ? 300 : 300,
+
+                scrollMode: scrollMode,
+
+                background: this.rexUI.add.roundRectangle(0, 0, 20, 10, 10, 0x000000).setStrokeStyle(1, 0xffffff),
+
+                table: {
+                    cellWidth: (scrollMode === 0) ? undefined : 60,
+                    cellHeight: (scrollMode === 0) ? 60 : undefined,
+
+                    columns: 1,
+
+                    mask: {
+                        padding: 5,
+                    },
+
+                    reuseCellContainer: true,
+                },
+
+                slider: {
+                    track: this.rexUI.add.roundRectangle(0, 0, 5, 20, 0, 0x888484),
+                    thumb: this.rexUI.add.roundRectangle(0, 0, 10, 20, 5, 0xDFDFDF),
+                },
+            
+                mouseWheelScroller: {
+                    focus: false,
+                    speed: 0.1
+                },
+
+                header: this.rexUI.add.label({
+                    width: (scrollMode === 0) ? undefined : 30,
+                    height: (scrollMode === 0) ? 30 : undefined,
+
+                    orientation: scrollMode,
+                    background: this.rexUI.add.roundRectangle(0, 0, 10, 20, 10, 0x000000),//.setStrokeStyle(1, 0xffffff),
+                    text: this.add.text(0, 0, 'World Ranking'),
+                    align: 'center'
+                }),
+
+                space: {
+                    left: 20,
+                    right: 20,
+                    top: 20,
+                    bottom: 20,
+
+                    table: 10,
+                    header: 10,
+                    footer: 10,
+                },
+
+                createCellContainerCallback: function (cell, cellContainer) {
+                    var scene = cell.scene,
+                        width = cell.width,
+                        height = cell.height,
+                        item = cell.item,
+                        index = cell.index;
+                    if (cellContainer === null) {
+                        cellContainer = scene.rexUI.add.label({
+                            width: width,
+                            height: height,
+
+                            orientation: scrollMode,
+                            background: scene.rexUI.add.roundRectangle(0, 0, 20, 20, 0).setStrokeStyle(1, COLOR_DARK),
+                            //icon: scene.rexUI.add.roundRectangle(0, 0, 20, 20, 10, 0x0),
+                            text: scene.add.text(0, 0, ''),
+
+                            space: {
+                                icon: 10,
+                                left: (scrollMode === 0) ? 15 : 0,
+                                top: (scrollMode === 0) ? 0 : 15,
+                            }
+                        });
+                        //console.log(cell.index + ': create new cell-container');
+                    } else {
+                        //console.log(cell.index + ': reuse cell-container');
+                    }
+
+                    // Set properties from item value
+                    cellContainer.setMinSize(width, height); // Size might changed in this demo
+                    cellContainer.getElement('text').setText(item.rank + "\t\t\t" + item.username + "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" + item.wins); // Set text of text object
+                    //cellContainer.getElement('icon').setFillStyle(item.color); // Set fill color of round rectangle object
+                    cellContainer.getElement('background').setStrokeStyle(1, COLOR_DARK).setDepth(0);
+                    return cellContainer;
+                },
+                items: this.res
+            })
+                .layout();
+          });
         const bgColor = Phaser.Display.Color.HexStringToColor("#000000");
         bgColor.alpha = 0.1;
         this.cameras.main.setBackgroundColor(bgColor.color);
-
+        console.log(this.res);
         const button = this.add.text(650, 47, '⭐ Back', { fill: '#fff',fontStyle: 'bold',})
             .setInteractive({ useHandCursor: true })
             .on('pointerdown', () => {
                 // navigate to another scene
-                this.scene.start('GameScene');
+                this.scene.start('main');
             })
             .on('pointerover', () => {
                 // change color on hover
@@ -54,11 +171,7 @@ class GameEnd extends Phaser.Scene {
             });
             button.setFontSize(20);
 
-        const titleText = this.add.text(this.game.config.width / 2, 40, 'You Win!', {
-            fontSize: '32px',
-            fontStyle: 'bold',
-            color: '#F9E83E'
-          }).setOrigin(0.5, 0);
+        
           
         
 
@@ -66,6 +179,12 @@ class GameEnd extends Phaser.Scene {
 
         //depends on winner
         if (this.redCatScore > this.blueCatScore) {
+
+            const titleText = this.add.text(this.game.config.width / 2, 40, 'Red Team Win!', {
+                fontSize: '32px',
+                fontStyle: 'bold',
+                color: '#FC6157'
+              }).setOrigin(0.5, 0);
 
             const redCatName = this.add.text(65, 140, 'Reddy', {
                 fontSize: 18,
@@ -141,6 +260,12 @@ class GameEnd extends Phaser.Scene {
             container2.add(text2);
         }
         else {
+
+            const titleText = this.add.text(this.game.config.width / 2, 40, 'Blue Team Win!', {
+                fontSize: '32px',
+                fontStyle: 'bold',
+                color: '#5ED4FC'
+              }).setOrigin(0.5, 0);
 
             const redCatName = this.add.text(65, 140, 'Reddy', {
                 fontSize: 18,
@@ -225,174 +350,11 @@ class GameEnd extends Phaser.Scene {
         
 
         
-
-        //table
-        var scrollMode = 0; // 0:vertical, 1:horizontal
-        var gridTable = this.rexUI.add.gridTable({
-            x: 397.5,
-            y: 270,
-            width: (scrollMode === 0) ? 350 : 420,
-            height: (scrollMode === 0) ? 300 : 300,
-
-            scrollMode: scrollMode,
-
-            background: this.rexUI.add.roundRectangle(0, 0, 20, 10, 10, 0x000000).setStrokeStyle(1, 0xffffff),
-
-            table: {
-                cellWidth: (scrollMode === 0) ? undefined : 60,
-                cellHeight: (scrollMode === 0) ? 60 : undefined,
-
-                columns: 1,
-
-                mask: {
-                    padding: 5,
-                },
-
-                reuseCellContainer: true,
-            },
-
-            slider: {
-                track: this.rexUI.add.roundRectangle(0, 0, 5, 20, 0, 0x888484),
-                thumb: this.rexUI.add.roundRectangle(0, 0, 10, 20, 5, 0xDFDFDF),
-            },
-          
-            mouseWheelScroller: {
-                focus: false,
-                speed: 0.1
-            },
-
-            header: this.rexUI.add.label({
-                width: (scrollMode === 0) ? undefined : 30,
-                height: (scrollMode === 0) ? 30 : undefined,
-
-                orientation: scrollMode,
-                background: this.rexUI.add.roundRectangle(0, 0, 10, 20, 10, 0x000000),//.setStrokeStyle(1, 0xffffff),
-                text: this.add.text(0, 0, 'World Ranking'),
-                align: 'center'
-            }),
-
-            //footer: GetFooterSizer(this, scrollMode),
-
-            space: {
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: 20,
-
-                table: 10,
-                header: 10,
-                footer: 10,
-            },
-
-            createCellContainerCallback: function (cell, cellContainer) {
-                var scene = cell.scene,
-                    width = cell.width,
-                    height = cell.height,
-                    item = cell.item,
-                    index = cell.index;
-                if (cellContainer === null) {
-                    cellContainer = scene.rexUI.add.label({
-                        width: width,
-                        height: height,
-
-                        orientation: scrollMode,
-                        background: scene.rexUI.add.roundRectangle(0, 0, 20, 20, 0).setStrokeStyle(1, COLOR_DARK),
-                        //icon: scene.rexUI.add.roundRectangle(0, 0, 20, 20, 10, 0x0),
-                        text: scene.add.text(0, 0, ''),
-
-                        space: {
-                            icon: 10,
-                            left: (scrollMode === 0) ? 15 : 0,
-                            top: (scrollMode === 0) ? 0 : 15,
-                        }
-                    });
-                    console.log(cell.index + ': create new cell-container');
-                } else {
-                    console.log(cell.index + ': reuse cell-container');
-                }
-
-                // Set properties from item value
-                cellContainer.setMinSize(width, height); // Size might changed in this demo
-                cellContainer.getElement('text').setText(item.id+1); // Set text of text object
-                //cellContainer.getElement('icon').setFillStyle(item.color); // Set fill color of round rectangle object
-                cellContainer.getElement('background').setStrokeStyle(1, COLOR_DARK).setDepth(0);
-                return cellContainer;
-            },
-            items: CreateItems(50)
-        })
-            .layout();
-        //.drawBounds(this.add.graphics(), 0xff0000);
-
-        //this.print = this.add.text(0, 0, '');
-        //gridTable
-            // .on('cell.down', function (cellContainer, cellIndex, pointer) {
-            //     this.print.text += 'pointer-down ' + cellIndex + ': ' + cellContainer.text + '\n';
-            // }, this)
-            // .on('cell.up', function (cellContainer, cellIndex, pointer) {
-            //     this.print.text += 'pointer-up ' + cellIndex + ': ' + cellContainer.text + '\n';
-            // }, this)
-            // .on('cell.over', function (cellContainer, cellIndex, pointer) {
-            //     cellContainer.getElement('background')
-            //         .setStrokeStyle(3, 0xF9E83E)
-            //         .setDepth(1);
-            // }, this)
-            // .on('cell.out', function (cellContainer, cellIndex, pointer) {
-            //     cellContainer.getElement('background')
-            //         .setStrokeStyle(1, COLOR_DARK)
-            //         .setDepth(0);
-            // }, this);
-            // .on('cell.click', function (cellContainer, cellIndex, pointer) {
-            //     this.print.text += 'click ' + cellIndex + ': ' + cellContainer.text + '\n';
-          
-            //     var nextCellIndex = cellIndex + 1;
-            //     var nextItem = gridTable.items[nextCellIndex];
-            //     if (!nextItem) {
-            //         return;
-            //     }
-            //     nextItem.color = 0xffffff - nextItem.color;
-            //     gridTable.updateVisibleCell(nextCellIndex);
-          
-            // }, this)
-            // .on('cell.1tap', function (cellContainer, cellIndex, pointer) {
-            //     this.print.text += '1 tap (' + cellIndex + ': ' + cellContainer.text + ')\n';
-            // }, this)
-            // .on('cell.2tap', function (cellContainer, cellIndex, pointer) {
-            //     this.print.text += '2 taps (' + cellIndex + ': ' + cellContainer.text + ')\n';
-            // }, this)
-            // .on('cell.pressstart', function (cellContainer, cellIndex, pointer) {
-            //     this.print.text += 'press-start (' + cellIndex + ': ' + cellContainer.text + ')\n';
-            // }, this)
-            // .on('cell.pressend', function (cellContainer, cellIndex, pointer) {
-            //     this.print.text += 'press-end (' + cellIndex + ': ' + cellContainer.text + ')\n';
-            // }, this)
-            // .on('cell.swiperight', function (cellContainer, cellIndex, pointer) {
-            //     this.print.text += 'swipe-right (' + cellIndex + ': ' + cellContainer.text + ')\n';
-            // }, this)
-            // .on('cell.swipeleft', function (cellContainer, cellIndex, pointer) {
-            //     this.print.text += 'swipe-left (' + cellIndex + ': ' + cellContainer.text + ')\n';
-            // }, this)
-            // .on('cell.swipeup', function (cellContainer, cellIndex, pointer) {
-            //     this.print.text += 'swipe-up (' + cellIndex + ': ' + cellContainer.text + ')\n';
-            // }, this)
-            // .on('cell.swipedown', function (cellContainer, cellIndex, pointer) {
-            //     this.print.text += 'swipe-down (' + cellIndex + ': ' + cellContainer.text + ')\n';
-            // }, this)      
-      
-        // this.add.text(800, 600, 'Reset item')
-        //     .setOrigin(1, 1)
-        //     .setInteractive()
-        //     .on('pointerdown', function () {
-        //         var itemCount = Random(10, 50);
-        //         gridTable
-        //             .setItems(CreateItems(itemCount))
-        //             .scrollToBottom()
-        //         console.log(`Create ${itemCount} items`)
-        //     })  
-    }
-
-    update() {
+        
     }
 }
+
+
 
 var CreateItems = function (count) {
     var data = [];
