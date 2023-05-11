@@ -9,6 +9,11 @@ const HTML_FILE = path.join(DIST_DIR, 'index.html');
 const SIGNUP_FILE = path.join(DIST_DIR, 'signup.html');
 const server = http.createServer(app);
 const io = new Server(server);
+const fs = require("fs");
+
+const bodyParser = require('body-parser');
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 
 app.use(express.static(DIST_DIR));
@@ -20,6 +25,41 @@ app.get('/game',  (req, res) => {
 app.get('/login', (req, res) => {
     res.sendFile(HTML_FILE);
 })
+
+app.get('/getRank', (req, res) => {
+    const rank = JSON.parse(fs.readFileSync("./data/rank.json"));
+    res.json(rank);
+})
+
+app.post("/updateRank", (req, res) => {
+
+    const { username } = req.body;
+    const rank = JSON.parse(fs.readFileSync("./data/rank.json"));
+
+    const existingRecordIndex = rank.findIndex((record) => record.username === username);
+
+    var existwin = 0;
+    if (existingRecordIndex !== -1) {
+        // If the user already has a score in the rank, compare it to the new score
+        const existingRecord = rank[existingRecordIndex];
+        existwin = existingRecord.wins;
+        // Otherwise, remove the existing score
+        rank.splice(existingRecordIndex, 1);
+    }
+
+    // Add the new record to the rank
+    rank.push({ username: username, wins: existwin+1 });
+
+    // Sort the rank by wins in descending order
+    rank.sort((a, b) => b.wins - a.wins);
+    for (var i = 0; i < rank.length; i++) {
+        rank[i]["rank"] = i + 1;
+    }
+    fs.writeFileSync("./data/rank.json", JSON.stringify(rank));
+    res.json(rank);
+    //console.log(res);
+   
+});
 
 
 
@@ -36,21 +76,29 @@ let Rooms ={
         num: 0,
         cat2Key: null,
         players: null,
+        cat1name: null,
+        cat2name: null,
     },
     '2': {
         num: 0,
         cat2Key: null,
         players: null,
+        cat1name: null,
+        cat2name: null,
     },
     '3': {
         num: 0,
         cat2Key: null,
         players: null,
+        cat1name: null,
+        cat2name: null,
     },
     '4': {
         num: 0,
         cat2Key: null,
         players: null,
+        cat1name: null,
+        cat2name: null,
     }
 };
 io.on("connection", (socket)=>{
@@ -80,6 +128,11 @@ io.on("connection", (socket)=>{
         // Send the online users to the browser
         console.log(onlineUsers);
         socket.emit("users", JSON.stringify(onlineUsers));
+    });
+
+    socket.on("getCatNames", () => {
+        //socket.to(roomId).emit("getnames", {cat1name: Rooms[roomId].cat1name, cat2name: Rooms[roomId].cat2name});
+        socket.emit("getnames", {cat1name: Rooms[roomId].cat1name, cat2name: Rooms[roomId].cat2name});
     });
 
     socket.on("get messages", () => {
@@ -135,7 +188,7 @@ io.on("connection", (socket)=>{
 
     // <<<<<<<<<<<<<<<<<<<<<<< End of Lab 6 Code >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     console.log("a user connected");
-    console.log(socket.id);
+    console.log("SocketID: "+socket.id);
     let roomId = null;
     // if(num >= 2){socket.disconnect(true); return;}
 
@@ -144,12 +197,15 @@ io.on("connection", (socket)=>{
             if(Rooms[key].num < 2){
                 socket.emit('num', Rooms[key].num++);
                 roomId = key;
+                if (Rooms[key].num === 1) Rooms[roomId].cat1name = USER[socket.id].username;
+                else Rooms[roomId].cat2name = USER[socket.id].username;
+
+                console.log(USER[socket.id].username + " joined room: "+ roomId + " as Player" + Rooms[key].num);
                 socket.join(roomId);
-                console.log(roomId);
                 break;
             }
         }
-        console.log(roomId);
+        
     });
 
     socket.on('update',(states)=>{
@@ -216,7 +272,7 @@ setInterval(() => {
 // <<<<<<<<<<<<<<<<<<<<<<< Start of Lab 6 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 const bcrypt = require("bcrypt");
-const fs = require("fs");
+
 const session = require("express-session");
 
 

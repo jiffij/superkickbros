@@ -10,6 +10,14 @@ export const cat = {
     fall: {
         start: 64,
         end: 72,
+    },
+    dance: {
+        start: 128,
+        end: 139,
+    },
+    kick: {
+        start: 176,
+        end: 181,
     }
 }
 
@@ -19,6 +27,7 @@ export const status = {
     jump: 2,
     slide: 3,
     fall: 4,
+    kick: 5,
 }
 
 export const keyState= {

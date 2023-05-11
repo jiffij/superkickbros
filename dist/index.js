@@ -2,6 +2,8 @@ import {cat, status, keyState, mushroomSprite, hadoukenConfig} from './Sprite.js
 // import {io} from "socket.io-client";
 import { io } from "https://cdn.socket.io/4.3.2/socket.io.esm.min.js";
 // import { io } from '';
+import GameEnd from './game_end.js';
+import LoginScene from './login.js';
 
 var config = {
     type: Phaser.CANVAS,
@@ -27,7 +29,7 @@ function init() {
 }
 
 function preload() {
-    this.load.image('background', 'assets/background.jpg');
+    this.load.image('background', 'assets/bg.jpg');
     this.load.image('base_tiles','assets/Mario1/Tilesets/OverWorld.png');
     this.load.tilemapTiledJSON('map', 'assets/platform.json');
     this.load.spritesheet('cat1', 'assets/cat1.png', {frameWidth: 64, frameHeight: 64});
@@ -105,6 +107,7 @@ var enemyKeyPressed = {
 }
 
 function create() {
+    this.add.image(400, 250,'background');
     timer = this.time.addEvent({
         delay: 180000,
         callback: () => {
@@ -155,6 +158,15 @@ function create() {
         }
     )
 
+    this.anims.create(
+        {
+            key: 'kick',
+            frames: this.anims.generateFrameNumbers(states.color, { start: cat.kick.start+2, end: cat.kick.end}),
+            frameRate: 13,
+            repeat: 0,
+        }
+    )
+
     player.play('stand');
 
     //inputs
@@ -188,8 +200,8 @@ function create() {
     if(states.color === 'cat2') ball.body.allowGravity = false;
 
     //add score
-    text1 = this.add.text(0, 0, `Score: `+cat1Score, { fontSize: '16px', fill: '#ffadad' });
-    text2 = this.add.text(700, 0, `Score: `+cat2Score, { fontSize: '16px', fill: '#93d3fa' });
+    text1 = this.add.text(0, 0, `Score: `+cat1Score, { fontSize: '16px', fill: '#BA0606' });
+    text2 = this.add.text(700, 0, `Score: `+cat2Score, { fontSize: '16px', fill: '#0626BA' });
 
     //add gate
     net1 = this.physics.add.image(8,428, 'gate1');
@@ -206,14 +218,24 @@ function create() {
             text2.setText(`Score: ` + cat2Score);
             if (states.color === 'cat1') socket.emit('score', {cat1: cat1Score, cat2: cat2Score});
             winSound.play();
-            this.scene.restart();
+            if (cat1Score < 3 && cat2Score < 3) this.scene.restart();
+            else {
+                console.log("endgame");
+                const gameEnd = this.scene.add('GameEnd', GameEnd, false);
+                this.scene.start('GameEnd', {socket: socket, cat1Score: cat1Score, cat2Score: cat2Score});
+            }
         })
         this.physics.add.overlap(net2, ball, () => {
             cat1Score++;
             text1.setText(`Score: ` + cat1Score);
             if (states.color === 'cat1') socket.emit('score', {cat1: cat1Score, cat2: cat2Score});
             winSound.play();
-            this.scene.restart();
+            if (cat1Score < 3 && cat2Score < 3) this.scene.restart();
+            else {
+                console.log("endgame");
+                const gameEnd = this.scene.add('GameEnd', GameEnd, false);
+                this.scene.start('GameEnd', {socket: socket, cat1Score: cat1Score, cat2Score: cat2Score});
+            }
         })
     }
 
@@ -436,8 +458,12 @@ function create() {
             hadouken(data.who, data.position);
         });
         socket.on('score', (score)=>{
-            this.scene.restart();
             winSound.play();
+            if (score['cat1'] < 3 && score['cat2'] < 3) this.scene.restart();
+            else {
+                const gameEnd = this.scene.add('GameEnd', GameEnd, false);
+                this.scene.start('GameEnd', {cat1Score: score['cat1'], cat2Score: score['cat2']});
+            }
             setTimeout(()=>{
                 text1.setText(`Score: `+score['cat1']);
                 text2.setText(`Score: `+score['cat2']);
@@ -471,6 +497,9 @@ function updateAnimState(){
             break;
         case status.fall:
             player.play('fall');
+            break;
+        case status.kick:
+            player.play('kick');
             break;
     }
     states.prestate = states.state;
@@ -625,6 +654,11 @@ function update(){
                 // keyPressed.dir = keyState.direction.none;
             }
 
+            if (cursors.SPACE.isDown) {
+                player.body.setVelocityX(0);
+                states.state = status.kick;
+            }
+
             // keyPressed.kick = keyState.kick.none;
             cursors.SPACE.once('down', function () {
                 let distance = Phaser.Math.Distance.Between(player.body.x, player.body.y, ball.body.x, ball.body.y);
@@ -692,7 +726,7 @@ function update(){
     }
 }
 
-const socket = io();
+export let socket = io();
 
 socket.emit('join');
 
@@ -718,8 +752,12 @@ socket.on('num', (num)=>{
             mushroomPos = serverStates['mushroom'];
         });
     }
-    game = new Phaser.Game(config);
+     game = new Phaser.Game(config);
+    // const login = game.scene.add('LoginScene', LoginScene, false);
+    // game.scene.start('LoginScene');
+    
 });
+
 
 // function startgame() {
 //     console.log('This function is workable')
